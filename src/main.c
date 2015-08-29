@@ -13,15 +13,51 @@
 #include "utility.h"
 
 //! Main data structure
-struct MainData {
+struct {
   Window    *window;    //!< The base window for the application
   Layer     *layer;     //!< The base layer on which everything will be drawn
 } main_data;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// Private Functions
+// Callbacks
 //
+
+//! Background layer update procedure
+//! @param layer A pointer to the layer being redrawn
+//! @param ctx A pointer to the graphics context
+static void prv_layer_update_proc_handler(Layer *layer, GContext *ctx) {
+
+}
+
+//! Up click handler
+//! @param recognizer The click recognizer
+//! @param ctx Pointer to the click context
+static void prv_up_click_handler(ClickRecognizerRef recognizer, void *ctx) {
+
+}
+
+//! Select click handler
+//! @param recognizer The click recognizer
+//! @param ctx Pointer to the click context
+static void prv_select_click_handler(ClickRecognizerRef recognizer, void *ctx) {
+
+}
+
+//! Down click handler
+//! @param recognizer The click recognizer
+//! @param ctx Pointer to the click context
+static void prv_down_click_handler(ClickRecognizerRef recognizer, void *ctx) {
+
+}
+
+//! Click configuration provider
+//! @param ctx Pointer to the click context
+static void prv_click_config_provider(void *ctx) {
+  window_single_click_subscribe(BUTTON_ID_UP, prv_up_click_handler);
+  window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click_handler);
+  window_single_click_subscribe(BUTTON_ID_DOWN, prv_down_click_handler);
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -33,12 +69,14 @@ static void prv_initialize(void) {
   // initialize window
   main_data.window = window_create();
   ASSERT(main_data.window);
+  window_set_click_config_provider(main_data.window, prv_click_config_provider);
   Layer *window_root = window_get_root_layer(main_data.window);
   GRect window_bounds = layer_get_bounds(window_root);
   window_stack_push(main_data.window, true);
   // initialize main layer
   main_data.layer = layer_create(window_bounds);
   ASSERT(main_data.layer);
+  layer_set_update_proc(main_data.layer, prv_layer_update_proc_handler);
   layer_add_child(window_root, main_data.layer);
 }
 
@@ -53,4 +91,5 @@ int main(void) {
   prv_initialize();
   app_event_loop();
   prv_terminate();
+  return 0;
 }
