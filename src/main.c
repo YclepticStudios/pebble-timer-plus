@@ -10,8 +10,7 @@
 
 #include <pebble.h>
 
-//! Defined constants
-#define ASSERT(ptr) assert(ptr, __FILE__, __LINE__)
+#include "utility.h"
 
 //! Main data structure
 struct MainData {
@@ -23,28 +22,6 @@ struct MainData {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Private Functions
 //
-
-//! Check pointer for null and assert
-//! @param ptr The pointer to check for NULL
-//! @param file A pointer to a string representing the name of the current file
-//! @param line An integer representing the current line
-static void assert(void *ptr, const char *file, int line) {
-  if (ptr) {
-    return;
-  }
-  APP_LOG(APP_LOG_LEVEL_ERROR, "Invalid pointer: (%s:%d)", file, line);
-  // assert
-  void (*exit)(void) = NULL;
-  exit();
-}
-
-//! Malloc with built in pointer check
-//! @param size The size of the memory to allocate
-static void *malloc_check(uint16_t size) {
-  void *ptr = malloc(size);
-  ASSERT(ptr);
-  return ptr;
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
