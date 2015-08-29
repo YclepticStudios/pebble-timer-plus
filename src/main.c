@@ -10,10 +10,11 @@
 
 #include <pebble.h>
 
+#include "drawing.h"
 #include "utility.h"
 
 //! Main data structure
-struct {
+static struct {
   Window    *window;    //!< The base window for the application
   Layer     *layer;     //!< The base layer on which everything will be drawn
 } main_data;
@@ -27,7 +28,8 @@ struct {
 //! @param layer A pointer to the layer being redrawn
 //! @param ctx A pointer to the graphics context
 static void prv_layer_update_proc_handler(Layer *layer, GContext *ctx) {
-
+  // render the timer's visuals
+  drawing_render(layer, ctx);
 }
 
 //! Up click handler
@@ -78,6 +80,9 @@ static void prv_initialize(void) {
   ASSERT(main_data.layer);
   layer_set_update_proc(main_data.layer, prv_layer_update_proc_handler);
   layer_add_child(window_root, main_data.layer);
+
+  // initialize drawing singleton
+  drawing_initialize();
 }
 
 //! Terminate the program
