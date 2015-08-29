@@ -9,6 +9,8 @@
 //! @date August 29, 2015
 //! @bugs No known bugs
 
+#include <pebble.h>
+
 
 //! Terminate program if null pointer
 //! @param ptr The pointer to check for null
@@ -17,3 +19,15 @@
 //! Malloc with failure check
 //! @param size The size of the memory to allocate
 #define MALLOC(size) malloc_check(size, __FILE__, __LINE__)
+
+//! Terminate program if null pointer
+//! @param ptr The pointer to check for null
+//! @param file The name of the file it is called from
+//! @param line The line number it is called from
+void assert(void *ptr, const char *file, int line);
+
+//! Malloc with failure check
+//! @param size The size of the memory to allocate
+//! @param file The name of the file it is called from
+//! @param line The line number it is called from
+void *malloc_check(uint16_t size, const char *file, int line);
