@@ -30,16 +30,26 @@ struct MainData {
 
 //! Initialize the program
 static void prv_initialize(void) {
-  // create the window
+  // initialize window
+  main_data.window = window_create();
+  ASSERT(main_data.window);
+  Layer *window_root = window_get_root_layer(main_data.window);
+  GRect window_bounds = layer_get_bounds(window_root);
+  window_stack_push(main_data.window, true);
+  // initialize main layer
+  main_data.layer = layer_create(window_bounds);
+  ASSERT(main_data.layer);
+  layer_add_child(window_root, main_data.layer);
 }
 
 //! Terminate the program
 static void prv_terminate(void) {
-
+  layer_destroy(main_data.layer);
+  window_destroy(main_data.window);
 }
 
 //! Entry point
-uint8_t main(void) {
+int main(void) {
   prv_initialize();
   app_event_loop();
   prv_terminate();
