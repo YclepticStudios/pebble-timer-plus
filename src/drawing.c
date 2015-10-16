@@ -11,8 +11,14 @@
 
 // Main data
 static struct {
+  Layer       *layer;             //< The main layer being drawn on, used to force a refresh
+
   int64_t     current_value;      //< The current timer time value (milliseconds)
   int64_t     total_value;        //< The total timer time value (milliseconds)
+
+  uint32_t    progress_angle;     //< The current angle of the progress ring
+
+  PropertyAnimation *progress_ani;  //< Pointer to progress animation
 
   GColor      fore_color;         //< Color of ring
   GColor      mid_color;          //< Color of center
@@ -62,6 +68,34 @@ static void prv_render_progress_ring_cover(GContext *ctx, GRect parent_bounds, u
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+// Animations
+//
+
+// Update implementation
+static const PropertyAnimationImplementation prv_ani_update_implementation = {
+  .base = {
+    // using the "stock" update callback:
+    .update = (AnimationUpdateImplementation) property_animation_update_int16,
+  },
+  .accessors = {
+    .setter = { .in};
+  }
+};
+
+// Animation for progress ring
+static void prv_progress_ani_create(int16_t from, int16_t to) {
+  drawing_data.progress_angle[0] = from;
+  drawing_data.progress_angle[2] = to;
+  drawing_data.progress_ani = property_animation_create(&prv_ani_update_implementation,
+                                                        &drawing_data.progress_angle[1],
+                                                        &drawing_data.progress_angle[0],
+                                                        &drawing_data.progress_angle[2]);
+  property_animation_
+  animation_schedule(property_animation_get_animation(drawing_data.progress_ani));
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // API Implementation
 //
 
@@ -85,17 +119,23 @@ void drawing_render(Layer *layer, GContext *ctx) {
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
   // draw ring as a cover
   graphics_context_set_fill_color(ctx, drawing_data.back_color);
-  prv_render_progress_ring_cover(ctx, bounds, TRIG_MAX_ANGLE * drawing_data.current_value /
-    drawing_data.total_value);
+  prv_render_progress_ring_cover(ctx, bounds, drawing_data.progress_angle);
 }
 
 // Initialize the singleton drawing data
-void drawing_initialize(void) {
+void drawing_initialize(Layer *layer) {
+  // set the layer
+  drawing_data.layer = layer;
   // set the values
   drawing_set_current_value(100000);
   drawing_set_total_value(300000);
+  // set visual states
+  drawing_data.progress_angle = 0;
   // set the colors
   drawing_data.fore_color = COLOR_FALLBACK(GColorOrange, GColorWhite);
   drawing_data.mid_color = COLOR_FALLBACK(GColorPastelYellow, GColorWhite);
   drawing_data.back_color = COLOR_FALLBACK(GColorDarkGray, GColorBlack);
+
+  // animate
+  prv_progress_ani_create(0, 20000);
 }

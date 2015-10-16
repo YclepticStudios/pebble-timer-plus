@@ -23,4 +23,5 @@ void drawing_set_total_value(int64_t total_value);
 void drawing_render(Layer *layer, GContext *ctx);
 
 //! Initialize the singleton drawing data
-void drawing_initialize(void);
+//! @param layer The layer which the drawing code can force to refresh, for animations
+void drawing_initialize(Layer *layer);

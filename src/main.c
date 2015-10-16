@@ -43,7 +43,7 @@ static void prv_up_click_handler(ClickRecognizerRef recognizer, void *ctx) {
 //! @param recognizer The click recognizer
 //! @param ctx Pointer to the click context
 static void prv_select_click_handler(ClickRecognizerRef recognizer, void *ctx) {
-
+  layer_mark_dirty(main_data.layer);
 }
 
 //! Down click handler
@@ -82,7 +82,7 @@ static void prv_initialize(void) {
   layer_add_child(window_root, main_data.layer);
 
   // initialize drawing singleton
-  drawing_initialize();
+  drawing_initialize(main_data.layer);
 }
 
 //! Terminate the program
@@ -96,5 +96,4 @@ int main(void) {
   prv_initialize();
   app_event_loop();
   prv_terminate();
-  return 0;
 }
