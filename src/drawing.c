@@ -15,7 +15,7 @@ static struct {
   Layer       *layer;             //< The main layer being drawn on, used to force a refresh
   int64_t     current_value;      //< The current timer time value (milliseconds)
   int64_t     total_value;        //< The total timer time value (milliseconds)
-  int32_t    progress_angle;      //< The current angle of the progress ring
+  int32_t     progress_angle;     //< The current angle of the progress ring
   PropertyAnimation *progress_ani;  //< Pointer to progress animation
   GColor      fore_color;         //< Color of ring
   GColor      mid_color;          //< Color of center
@@ -120,7 +120,9 @@ void drawing_initialize(Layer *layer) {
   animation_register_update_callback(&prv_animation_update_callback);
 
   // start test animation
-  animation_int32_start(&drawing_data.progress_angle, TRIG_MAX_ANGLE, 3000);
+  animation_int32_start(&drawing_data.progress_angle, TRIG_MAX_ANGLE, 4000, 0);
+  animation_int32_start(&drawing_data.progress_angle, 0, 1000, 3000);
+  animation_int32_start(&drawing_data.progress_angle, TRIG_MAX_ANGLE, 500, 3800);
 }
 
 // Destroy the singleton drawing data
