@@ -33,3 +33,8 @@ void *malloc_check(uint16_t size, const char *file, int line) {
   assert(ptr, file, line);
   return ptr;
 }
+
+// Get current epoch in milliseconds
+int64_t epoch(void) {
+  return (int64_t)time(NULL) * 1000 + (int64_t)time_ms(NULL, NULL);
+}
