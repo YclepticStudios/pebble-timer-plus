@@ -1,22 +1,22 @@
-//! @file main.c
-//! @brief Main logic for Timer++
-//!
-//! Contains the main logic code and is responsible for loading
-//! and unloading the program
-//!
-//! @author Eric D. Phillips
-//! @date August 27, 2015
-//! @bugs No known bugs
+// @file main.c
+// @brief Main logic for Timer++
+//
+// Contains the main logic code and is responsible for loading
+// and unloading the program
+//
+// @author Eric D. Phillips
+// @date August 27, 2015
+// @bugs No known bugs
 
 #include <pebble.h>
 
 #include "drawing.h"
 #include "utility.h"
 
-//! Main data structure
+// Main data structure
 static struct {
-  Window    *window;    //!< The base window for the application
-  Layer     *layer;     //!< The base layer on which everything will be drawn
+  Window    *window;    //< The base window for the application
+  Layer     *layer;     //< The base layer on which everything will be drawn
 } main_data;
 
 
@@ -24,37 +24,37 @@ static struct {
 // Callbacks
 //
 
-//! Background layer update procedure
-//! @param layer A pointer to the layer being redrawn
-//! @param ctx A pointer to the graphics context
+// Background layer update procedure
+// @param layer A pointer to the layer being redrawn
+// @param ctx A pointer to the graphics context
 static void prv_layer_update_proc_handler(Layer *layer, GContext *ctx) {
   // render the timer's visuals
   drawing_render(layer, ctx);
 }
 
-//! Up click handler
-//! @param recognizer The click recognizer
-//! @param ctx Pointer to the click context
+// Up click handler
+// @param recognizer The click recognizer
+// @param ctx Pointer to the click context
 static void prv_up_click_handler(ClickRecognizerRef recognizer, void *ctx) {
 
 }
 
-//! Select click handler
-//! @param recognizer The click recognizer
-//! @param ctx Pointer to the click context
+// Select click handler
+// @param recognizer The click recognizer
+// @param ctx Pointer to the click context
 static void prv_select_click_handler(ClickRecognizerRef recognizer, void *ctx) {
-  layer_mark_dirty(main_data.layer);
+
 }
 
-//! Down click handler
-//! @param recognizer The click recognizer
-//! @param ctx Pointer to the click context
+// Down click handler
+// @param recognizer The click recognizer
+// @param ctx Pointer to the click context
 static void prv_down_click_handler(ClickRecognizerRef recognizer, void *ctx) {
 
 }
 
-//! Click configuration provider
-//! @param ctx Pointer to the click context
+// Click configuration provider
+// @param ctx Pointer to the click context
 static void prv_click_config_provider(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_UP, prv_up_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click_handler);
@@ -66,7 +66,7 @@ static void prv_click_config_provider(void *ctx) {
 // Loading and Unloading
 //
 
-//! Initialize the program
+// Initialize the program
 static void prv_initialize(void) {
   // initialize window
   main_data.window = window_create();
@@ -85,13 +85,13 @@ static void prv_initialize(void) {
   drawing_initialize(main_data.layer);
 }
 
-//! Terminate the program
+// Terminate the program
 static void prv_terminate(void) {
   layer_destroy(main_data.layer);
   window_destroy(main_data.window);
 }
 
-//! Entry point
+// Entry point
 int main(void) {
   prv_initialize();
   app_event_loop();

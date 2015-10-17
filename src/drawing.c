@@ -12,18 +12,21 @@
 // Main data
 static struct {
   Layer       *layer;             //< The main layer being drawn on, used to force a refresh
-
   int64_t     current_value;      //< The current timer time value (milliseconds)
   int64_t     total_value;        //< The total timer time value (milliseconds)
-
   uint32_t    progress_angle;     //< The current angle of the progress ring
-
   PropertyAnimation *progress_ani;  //< Pointer to progress animation
-
   GColor      fore_color;         //< Color of ring
   GColor      mid_color;          //< Color of center
   GColor      back_color;         //< Color behind ring
 } drawing_data;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Data Points for Visuals
+//
+
+//
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -9,6 +9,8 @@
 //! @date September 1, 2015
 //! @bugs No known bugs
 
+#include <pebble.h>
+
 //! Animate an integer by its pointer
 //! @param ptr A pointer to the integer to animate
 //! @param to The value to animate the pointer value to
@@ -24,6 +26,3 @@ void animation_grect_start(GRect *ptr, GRect to, uint32_t duration);
 //! Cancel an animation by its pointer
 //! @param ptr A pointer for which to cancel an animation
 void animation_stop(void *ptr);
-
-//! Initialize animation singleton
-void animation_initialize(void);
