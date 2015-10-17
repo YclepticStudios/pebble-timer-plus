@@ -26,3 +26,7 @@ void animation_grect_start(GRect *ptr, GRect to, uint32_t duration);
 //! Cancel an animation by its pointer
 //! @param ptr A pointer for which to cancel an animation
 void animation_stop(void *ptr);
+
+//! Register animation update callback
+//! @param callback A pointer to the function to call when updating
+void animation_register_update_callback(void *callback);

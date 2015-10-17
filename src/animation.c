@@ -29,6 +29,7 @@ typedef struct AnimationNode {
 // Animation framework data
 static AnimationNode  *head_node = NULL;    //< Head node in linked list containing all animations
 static AppTimer       *ani_timer = NULL;    //< AppTimer for stepping all animations
+static void   (*ani_callback)(void) = NULL; //< Animation update callback
 
 // Functions
 static void prv_animation_timer_start(void);
@@ -90,7 +91,10 @@ static void prv_animation_timer_callback(void *data) {
     (*cur_node->step_func)(cur_node);
     cur_node = cur_node->next;
   }
-  // TODO: Call animation tick callback
+  // raise animation update callback
+  if (ani_callback) {
+    ani_callback();
+  }
 }
 
 // Start animation timer if not running
@@ -147,4 +151,9 @@ void animation_stop(void *ptr) {
     pre_node = cur_node;
     cur_node = cur_node->next;
   }
+}
+
+// Register animation update callback
+void animation_register_update_callback(void *callback) {
+  ani_callback = callback;
 }
