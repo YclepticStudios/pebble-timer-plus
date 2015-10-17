@@ -25,3 +25,6 @@ void drawing_render(Layer *layer, GContext *ctx);
 //! Initialize the singleton drawing data
 //! @param layer The layer which the drawing code can force to refresh, for animations
 void drawing_initialize(Layer *layer);
+
+//! Destroy the singleton drawing data
+void drawing_terminate(void);

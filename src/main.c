@@ -87,6 +87,7 @@ static void prv_initialize(void) {
 
 // Terminate the program
 static void prv_terminate(void) {
+  drawing_terminate();
   layer_destroy(main_data.layer);
   window_destroy(main_data.window);
 }

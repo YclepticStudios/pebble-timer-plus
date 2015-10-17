@@ -27,9 +27,9 @@ typedef struct AnimationNode {
 } AnimationNode;
 
 // Animation framework data
-static AnimationNode  *head_node = NULL;    //< Head node in linked list containing all animations
-static AppTimer       *ani_timer = NULL;    //< AppTimer for stepping all animations
-static void   (*ani_callback)(void) = NULL; //< Animation update callback
+static AnimationNode  *head_node = NULL;      //< Head node in linked list containing all animations
+static AppTimer       *ani_timer = NULL;      //< AppTimer for stepping all animations
+static void   (*ani_callback)(void) = NULL;   //< Animation update callback
 
 // Functions
 static void prv_animation_timer_start(void);
@@ -152,6 +152,26 @@ void animation_stop(void *ptr) {
     }
     pre_node = cur_node;
     cur_node = cur_node->next;
+  }
+}
+
+// Cancel all running animations
+void animation_stop_all(void) {
+  // stop timer
+  if (ani_timer) {
+    app_timer_cancel(ani_timer);
+  }
+  // destroy all animations
+  AnimationNode *cur_node = head_node;
+  AnimationNode *tmp_node = NULL;
+  while (cur_node) {
+    // index node
+    tmp_node = cur_node;
+    cur_node = cur_node->next;
+    // destroy node
+    free(tmp_node->from);
+    free(tmp_node->to);
+    free(tmp_node);
   }
 }
 

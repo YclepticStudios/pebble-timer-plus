@@ -122,3 +122,8 @@ void drawing_initialize(Layer *layer) {
   // start test animation
   animation_int32_start(&drawing_data.progress_angle, TRIG_MAX_ANGLE, 3000);
 }
+
+// Destroy the singleton drawing data
+void drawing_terminate(void) {
+  animation_stop_all();
+}
