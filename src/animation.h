@@ -15,7 +15,7 @@
 //! @param ptr A pointer to the integer to animate
 //! @param to The value to animate the pointer value to
 //! @param duration The length of time over which to animate the value
-void animation_uint32_start(uint32_t *ptr, uint32_t to, uint32_t duration);
+void animation_int32_start(int32_t *ptr, int32_t to, uint32_t duration);
 
 //! Animate a GRect by its pointer
 //! @param ptr A pointer to the GRect to animate

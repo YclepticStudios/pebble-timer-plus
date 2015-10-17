@@ -44,13 +44,13 @@ static int32_t prv_curve_quad_ease_in_out(int32_t from, int32_t to, uint32_t per
   if (percent >= percent_max) {
     return to;
   }
-  int32_t t_percent = percent * 1000;
+  int32_t t_percent = percent * 100;
   t_percent /= percent_max / 2;
-  if (t_percent < 1000) {
-    return (to - from) / 2 * t_percent * t_percent / 1000000 + from;
+  if (t_percent < 100) {
+    return (to - from) / 2 * t_percent * t_percent / 10000 + from;
   }
-  t_percent -= 1000;
-  return -(to - from) / 2 * (t_percent * (t_percent - 2000) - 1000000) / 1000000 + from;
+  t_percent -= 100;
+  return -(to - from) / 2 * (t_percent * (t_percent - 200) - 10000) / 10000 + from;
 }
 
 // Step a int32 animation
@@ -119,6 +119,8 @@ void animation_int32_start(int32_t *ptr, int32_t to, uint32_t duration) {
   new_node->to = MALLOC(sizeof(int32_t));
   (*(int32_t*)new_node->from) = (*ptr);
   (*(int32_t*)new_node->to) = to;
+  new_node->start_time = epoch();
+  new_node->duration = duration;
   new_node->next = NULL;
   prv_list_add_node(new_node);
   // start animation timer if not running

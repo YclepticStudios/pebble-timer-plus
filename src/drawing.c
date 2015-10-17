@@ -8,13 +8,14 @@
 // @bugs No known bugs
 
 #include <pebble.h>
+#include "animation.h"
 
 // Main data
 static struct {
   Layer       *layer;             //< The main layer being drawn on, used to force a refresh
   int64_t     current_value;      //< The current timer time value (milliseconds)
   int64_t     total_value;        //< The total timer time value (milliseconds)
-  uint32_t    progress_angle;     //< The current angle of the progress ring
+  int32_t    progress_angle;      //< The current angle of the progress ring
   PropertyAnimation *progress_ani;  //< Pointer to progress animation
   GColor      fore_color;         //< Color of ring
   GColor      mid_color;          //< Color of center
@@ -26,21 +27,19 @@ static struct {
 // Data Points for Visuals
 //
 
-//
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Private Functions
 //
 
 // Get a point from a center point, angle, and radius
-static GPoint prv_polar_to_rectangular(GPoint center, uint32_t angle, int16_t radius) {
+static GPoint prv_polar_to_rectangular(GPoint center, int32_t angle, int16_t radius) {
   return GPoint((-sin_lookup(angle) * radius / TRIG_MAX_RATIO) + center.x,
                 (-cos_lookup(angle) * radius / TRIG_MAX_RATIO) + center.y);
 }
 
 // Draw the gray cover over part of the progress ring
-static void prv_render_progress_ring_cover(GContext *ctx, GRect parent_bounds, uint32_t angle) {
+static void prv_render_progress_ring_cover(GContext *ctx, GRect parent_bounds, int32_t angle) {
   // get step angle and exit if too small
   int32_t step = angle / 4;
   if (step < 1) {
@@ -48,11 +47,11 @@ static void prv_render_progress_ring_cover(GContext *ctx, GRect parent_bounds, u
   }
   // get properties
   GPoint center = GPoint(parent_bounds.size.w / 2, parent_bounds.size.h / 2);
-  int16_t radius = parent_bounds.size.w;
+  int16_t radius = (parent_bounds.size.w + parent_bounds.size.h) / 2;
   // calculate points around outside of window to draw cover
   GPoint points[8];
   uint32_t idx = 0;
-  for (uint32_t t_angle = 0; t_angle < angle; t_angle += step){
+  for (int32_t t_angle = 0; t_angle < angle; t_angle += step){
     points[idx++] = prv_polar_to_rectangular(center, t_angle, radius);
   }
   // add point at hand position, and in center (to form pie wedge)
@@ -70,31 +69,10 @@ static void prv_render_progress_ring_cover(GContext *ctx, GRect parent_bounds, u
 }
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Animations
-//
-
-// Update implementation
-static const PropertyAnimationImplementation prv_ani_update_implementation = {
-  .base = {
-    // using the "stock" update callback:
-    .update = (AnimationUpdateImplementation) property_animation_update_int16,
-  },
-  .accessors = {
-    .setter = { .in};
-  }
-};
-
-// Animation for progress ring
-static void prv_progress_ani_create(int16_t from, int16_t to) {
-  drawing_data.progress_angle[0] = from;
-  drawing_data.progress_angle[2] = to;
-  drawing_data.progress_ani = property_animation_create(&prv_ani_update_implementation,
-                                                        &drawing_data.progress_angle[1],
-                                                        &drawing_data.progress_angle[0],
-                                                        &drawing_data.progress_angle[2]);
-  property_animation_
-  animation_schedule(property_animation_get_animation(drawing_data.progress_ani));
+// Animation update callback
+static void prv_animation_update_callback(void) {
+  // refresh
+  layer_mark_dirty(drawing_data.layer);
 }
 
 
@@ -138,7 +116,9 @@ void drawing_initialize(Layer *layer) {
   drawing_data.fore_color = COLOR_FALLBACK(GColorOrange, GColorWhite);
   drawing_data.mid_color = COLOR_FALLBACK(GColorPastelYellow, GColorWhite);
   drawing_data.back_color = COLOR_FALLBACK(GColorDarkGray, GColorBlack);
+  // set animation update callback
+  animation_register_update_callback(&prv_animation_update_callback);
 
-  // animate
-  prv_progress_ani_create(0, 20000);
+  // start test animation
+  animation_int32_start(&drawing_data.progress_angle, TRIG_MAX_ANGLE, 3000);
 }
