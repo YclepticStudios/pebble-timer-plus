@@ -16,6 +16,9 @@
 #define CIRCLE_RADIUS 60
 #define ANGLE_CHANGE_ANI_THRESHOLD 348
 #define PROGRESS_ANI_DURATION 500
+#define MAIN_TEXT_CIRCLE_RADIUS (CIRCLE_RADIUS - 7)
+#define MAIN_TEXT_BOUNDS GRect(-MAIN_TEXT_CIRCLE_RADIUS, -MAIN_TEXT_CIRCLE_RADIUS / 2,\
+ MAIN_TEXT_CIRCLE_RADIUS * 2, MAIN_TEXT_CIRCLE_RADIUS)
 
 // Main data
 static struct {
@@ -72,12 +75,6 @@ static void prv_progress_ring_update(void) {
 // Private Functions
 //
 
-// Animation update callback
-static void prv_animation_update_callback(void) {
-  // refresh
-  layer_mark_dirty(drawing_data.layer);
-}
-
 // Draw main text onto drawing context
 static void prv_render_main_text(GContext *ctx, GRect bounds) {
   // calculate time parts
@@ -85,12 +82,36 @@ static void prv_render_main_text(GContext *ctx, GRect bounds) {
   int min = drawing_data.current_value % MSEC_IN_HR / MSEC_IN_MIN;
   int sec = drawing_data.current_value % MSEC_IN_MIN / MSEC_IN_SEC;
   // convert to strings
-  char hr_buff[4], min_buff[3], sec_buff[3];
+  char hr_buff[4], min_buff[3], sec_buff[3], tot_buff[6];
   snprintf(hr_buff, sizeof(hr_buff), "%d", hr);
   snprintf(min_buff, sizeof(min_buff), hr ? "%02d" : "%d", min);
   snprintf(sec_buff, sizeof(sec_buff), "%02d", sec);
-  // draw strings onto graphics context
-  text_render_draw_text(ctx, sec_buff, 30, grect_center_point(&bounds));
+  snprintf(tot_buff, sizeof(tot_buff), "%d:%02d", min, sec);
+  // calculate bounds of main text elements
+  uint16_t font_size = text_render_get_max_font_size(tot_buff, MAIN_TEXT_BOUNDS);
+  GRect min_bounds = text_render_get_content_bounds(min_buff, font_size);
+  GRect col_bounds = text_render_get_content_bounds(":", font_size);
+  GRect sec_bounds = text_render_get_content_bounds(sec_buff, font_size);
+  GRect tot_bounds;
+  tot_bounds.size.w = min_bounds.size.w + col_bounds.size.w + sec_bounds.size.w;
+  tot_bounds.size.h = min_bounds.size.h;
+  tot_bounds.origin.x = (bounds.size.w - tot_bounds.size.w) / 2;
+  tot_bounds.origin.y = (bounds.size.h - tot_bounds.size.h) / 2;
+  min_bounds.origin = tot_bounds.origin;
+  col_bounds.origin.x = min_bounds.origin.x + min_bounds.size.w;
+  col_bounds.origin.y = min_bounds.origin.y;
+  sec_bounds.origin.x = col_bounds.origin.x + col_bounds.size.w;
+  sec_bounds.origin.y = col_bounds.origin.y;
+  // draw the main text elements in their respective bounds
+  text_render_draw_text(ctx, min_buff, font_size, min_bounds.origin);
+  text_render_draw_text(ctx, ":", font_size, col_bounds.origin);
+  text_render_draw_text(ctx, sec_buff, font_size, sec_bounds.origin);
+}
+
+// Animation update callback
+static void prv_animation_update_callback(void) {
+  // refresh
+  layer_mark_dirty(drawing_data.layer);
 }
 
 

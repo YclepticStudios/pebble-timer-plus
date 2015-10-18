@@ -12,15 +12,15 @@
 #pragma once
 #include <pebble.h>
 
-//! Gets the size of a certain text string at a certain font size
+//! Gets the bounds of a certain text string at a certain font size
 //! @param buff The text string to measure
 //! @param font_size The font size to measure the string at
-GSize text_render_get_content_size(char *buff, uint16_t font_size);
+GRect text_render_get_content_bounds(char *buff, uint16_t font_size);
 
 //! Gets the maximum font size of a certain text string within a certain bounds
 //! @param buff The text string to measure
 //! @param size The size of the bounds within which to measure the maximum size
-uint16_t text_render_get_max_font_size(char *buff, GSize size);
+uint16_t text_render_get_max_font_size(char *buff, GRect size);
 
 //! Renders the LECO font onto a drawing context at a certain font size
 //! @param ctx The GContext onto which to draw the text

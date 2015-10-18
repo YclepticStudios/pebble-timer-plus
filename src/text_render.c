@@ -121,8 +121,8 @@ static void prv_draw_text(GContext *ctx, char *buff, uint16_t font_size, GPoint 
 // API Functions
 //
 
-// Gets the size of a certain text string at a certain font size
-GSize text_render_get_content_size(char *buff, uint16_t font_size) {
+// Gets the bounds of a certain text string at a certain font size
+GRect text_render_get_content_bounds(char *buff, uint16_t font_size) {
   // get the unscaled size of the rendered string
   int16_t total_width = 0;
   for (uint8_t ii = 0; ii < STRING_MAX_LENGTH && buff[ii] != '\0'; ii++) {
@@ -137,16 +137,16 @@ GSize text_render_get_content_size(char *buff, uint16_t font_size) {
   }
 
   // return the size
-  return GSize(total_width * font_size / CHARACTER_DEFINITION_HEIGHT, font_size);
+  return GRect(0, 0, total_width * font_size / CHARACTER_DEFINITION_HEIGHT, font_size);
 }
 
 // Gets the maximum font size of a certain text string within a certain bounds
-uint16_t text_render_get_max_font_size(char *buff, GSize size) {
+uint16_t text_render_get_max_font_size(char *buff, GRect bounds) {
   // get the unscaled size of the rendered string
-  GSize unscaled_size = text_render_get_content_size(buff, CHARACTER_DEFINITION_HEIGHT);
+  GRect unscaled_bounds = text_render_get_content_bounds(buff, CHARACTER_DEFINITION_HEIGHT);
   // calculate the maximum font size which stays within this rectangle
-  uint16_t font_size_w = CHARACTER_DEFINITION_HEIGHT * size.w / unscaled_size.w;
-  uint16_t font_size_h = CHARACTER_DEFINITION_HEIGHT * size.h / unscaled_size.h;
+  uint16_t font_size_w = CHARACTER_DEFINITION_HEIGHT * bounds.size.w / unscaled_bounds.size.w;
+  uint16_t font_size_h = CHARACTER_DEFINITION_HEIGHT * bounds.size.h / unscaled_bounds.size.h;
   return (font_size_h < font_size_w) ? font_size_h : font_size_w;
 }
 
@@ -159,16 +159,16 @@ void text_render_draw_text(GContext *ctx, char *buff, uint16_t font_size, GPoint
 // Renders the LECO font at the largest possible size that will fit within a certain size rectangle
 void text_render_draw_scalable_text(GContext *ctx, char *buff, GRect bounds) {
   // get the unscaled size of the rendered string
-  GSize unscaled_size = text_render_get_content_size(buff, CHARACTER_DEFINITION_HEIGHT);
+  GRect unscaled_bounds = text_render_get_content_bounds(buff, CHARACTER_DEFINITION_HEIGHT);
   // calculate the maximum font size which stays within this rectangle
-  uint16_t font_size_w = CHARACTER_DEFINITION_HEIGHT * bounds.size.w / unscaled_size.w;
-  uint16_t font_size_h = CHARACTER_DEFINITION_HEIGHT * bounds.size.h / unscaled_size.h;
+  uint16_t font_size_w = CHARACTER_DEFINITION_HEIGHT * bounds.size.w / unscaled_bounds.size.w;
+  uint16_t font_size_h = CHARACTER_DEFINITION_HEIGHT * bounds.size.h / unscaled_bounds.size.h;
   uint16_t font_size = (font_size_h < font_size_w) ? font_size_h : font_size_w;
   // center the text
   GPoint position;
-  position.x = bounds.origin.x + (bounds.size.w - unscaled_size.w * font_size /
+  position.x = bounds.origin.x + (bounds.size.w - unscaled_bounds.size.w * font_size /
                                                   CHARACTER_DEFINITION_HEIGHT) / 2;
-  position.y = bounds.origin.y + (bounds.size.h - unscaled_size.h * font_size /
+  position.y = bounds.origin.y + (bounds.size.h - unscaled_bounds.size.h * font_size /
                                                   CHARACTER_DEFINITION_HEIGHT) / 2;
   // draw the text onto the graphics context
   prv_draw_text(ctx, buff, font_size, position);
