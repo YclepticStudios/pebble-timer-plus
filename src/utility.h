@@ -12,6 +12,11 @@
 #pragma once
 #include <pebble.h>
 
+//! Time span conversions
+#define MSEC_IN_HR 3600000
+#define MSEC_IN_MIN 60000
+#define MSEC_IN_SEC 1000
+
 //! Compatibility functions for Aplite
 #ifdef PBL_SDK_2
 static const uint8_t GOvalScaleModeFillCircle = 0;

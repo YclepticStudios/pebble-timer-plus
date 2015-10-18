@@ -9,6 +9,7 @@
 
 #include <pebble.h>
 #include "animation.h"
+#include "text_render.h"
 #include "utility.h"
 
 // Drawing constants
@@ -77,6 +78,21 @@ static void prv_animation_update_callback(void) {
   layer_mark_dirty(drawing_data.layer);
 }
 
+// Draw main text onto drawing context
+static void prv_render_main_text(GContext *ctx, GRect bounds) {
+  // calculate time parts
+  int hr = drawing_data.current_value / MSEC_IN_HR;
+  int min = drawing_data.current_value % MSEC_IN_HR / MSEC_IN_MIN;
+  int sec = drawing_data.current_value % MSEC_IN_MIN / MSEC_IN_SEC;
+  // convert to strings
+  char hr_buff[4], min_buff[3], sec_buff[3];
+  snprintf(hr_buff, sizeof(hr_buff), "%d", hr);
+  snprintf(min_buff, sizeof(min_buff), hr ? "%02d" : "%d", min);
+  snprintf(sec_buff, sizeof(sec_buff), "%02d", sec);
+  // draw strings onto graphics context
+  text_render_draw_text(ctx, sec_buff, 30, grect_center_point(&bounds));
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // API Implementation
@@ -105,7 +121,11 @@ void drawing_render(Layer *layer, GContext *ctx) {
   prv_render_progress_ring(ctx, bounds);
   // draw main circle
   graphics_context_set_fill_color(ctx, drawing_data.mid_color);
-  //graphics_fill_circle(ctx, grect_center_point(&bounds), CIRCLE_RADIUS);
+  graphics_fill_circle(ctx, grect_center_point(&bounds), CIRCLE_RADIUS);
+  // draw main text (drawn as filled and stroked path)
+  graphics_context_set_stroke_color(ctx, drawing_data.fore_color);
+  graphics_context_set_fill_color(ctx, drawing_data.fore_color);
+  prv_render_main_text(ctx, bounds);
 }
 
 // Initialize the singleton drawing data
