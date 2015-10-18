@@ -8,8 +8,8 @@ FILE(GLOB SOURCE
 )
 
 FILE(GLOB HEADERS
-  "/usr/local/Cellar/pebble-sdk/3.3/Pebble/basalt/include/*.h"
+  "/usr/local/Cellar/pebble-sdk/3.6/Pebble/basalt/include/*.h"
 )
 
-INCLUDE_DIRECTORIES(/usr/local/Cellar/pebble-sdk/3.3/Pebble/basalt/include)
+INCLUDE_DIRECTORIES(/usr/local/Cellar/pebble-sdk/3.6/Pebble/basalt/include)
 ADD_EXECUTABLE(Timer++ ${SOURCE} ${HEADERS})
