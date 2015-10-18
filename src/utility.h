@@ -9,8 +9,15 @@
 //! @date August 29, 2015
 //! @bugs No known bugs
 
+#pragma once
 #include <pebble.h>
 
+//! Compatibility functions for Aplite
+#ifdef PBL_SDK_2
+static const uint8_t GOvalScaleModeFillCircle = 0;
+void graphics_fill_radial(GContext *ctx, GRect bounds, uint8_t fill_mode, int16_t inset,
+                          int32_t angle_start, int32_t angle_end);
+#endif
 
 //! Terminate program if null pointer
 //! @param ptr The pointer to check for null

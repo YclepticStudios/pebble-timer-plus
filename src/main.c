@@ -74,6 +74,10 @@ static void prv_initialize(void) {
   window_set_click_config_provider(main_data.window, prv_click_config_provider);
   Layer *window_root = window_get_root_layer(main_data.window);
   GRect window_bounds = layer_get_bounds(window_root);
+#ifdef PBL_SDK_2
+  window_set_fullscreen(main_data.window, true);
+  window_bounds.size.h = 168;
+#endif
   window_stack_push(main_data.window, true);
   // initialize main layer
   main_data.layer = layer_create(window_bounds);

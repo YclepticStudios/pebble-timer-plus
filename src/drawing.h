@@ -7,6 +7,7 @@
 //! @date August 29, 2015
 //! @bugs No known bugs
 
+#pragma once
 #include <pebble.h>
 
 //! Set the current timer value used when drawing

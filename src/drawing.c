@@ -9,6 +9,7 @@
 
 #include <pebble.h>
 #include "animation.h"
+#include "utility.h"
 
 // Drawing constants
 #define CIRCLE_RADIUS 60
@@ -37,40 +38,19 @@ static struct {
 // Progress Ring
 //
 
-// Get a point from a center point, angle, and radius
-static GPoint prv_polar_to_rectangular(GPoint center, int32_t angle, int16_t radius) {
-  return GPoint((-sin_lookup(angle) * radius / TRIG_MAX_RATIO) + center.x,
-                (-cos_lookup(angle) * radius / TRIG_MAX_RATIO) + center.y);
-}
-
-// Draw the gray cover over part of the progress ring
-static void prv_render_progress_ring_cover(GContext *ctx, GRect bounds, int32_t angle) {
-  // get step angle and exit if too small
-  int32_t step = angle / 4;
-  if (step < 1) {
-    return;
-  }
-  // get properties
-  GPoint center = grect_center_point(&bounds);
-  int16_t radius = (bounds.size.w + bounds.size.h) / 2;
-  // calculate points around outside of window to draw cover
-  GPoint points[8];
-  uint32_t idx = 0;
-  for (int32_t t_angle = 0; t_angle < angle; t_angle += step){
-    points[idx++] = prv_polar_to_rectangular(center, t_angle, radius);
-  }
-  // add point at hand position, and in center (to form pie wedge)
-  points[idx++] = prv_polar_to_rectangular(center, angle, radius);
-  points[idx++] = center;
-
-  // fill the covering
-  GPathInfo info = (GPathInfo) {
-    .num_points = idx,
-    .points = points
-  };
-  GPath *path = gpath_create(&info);
-  gpath_draw_filled(ctx, path);
-  gpath_destroy(path);
+// Draw progress ring
+static void prv_render_progress_ring(GContext *ctx, GRect bounds) {
+  // calculate ring bounds size
+  int32_t gr_angle = atan2_lookup(bounds.size.h, bounds.size.w);
+  int32_t radius = (bounds.size.h / 2) * TRIG_MAX_RATIO / sin_lookup(gr_angle);
+  bounds.origin.x += bounds.size.w / 2 - radius;
+  bounds.origin.y += bounds.size.h / 2 - radius;
+  bounds.size.w = bounds.size.h = radius * 2;
+  // draw ring on context
+  int32_t angle_1 = drawing_data.progress_angle;
+  int32_t angle_2 = TRIG_MAX_ANGLE;
+  graphics_context_set_fill_color(ctx, drawing_data.back_color);
+  graphics_fill_radial(ctx, bounds, GOvalScaleModeFillCircle, radius, angle_1, angle_2);
 }
 
 // Update the progress ring position based on the current and total values
@@ -122,12 +102,10 @@ void drawing_render(Layer *layer, GContext *ctx) {
   // this is actually the ring, which is then covered up with the background
   graphics_context_set_fill_color(ctx, drawing_data.ring_color);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
-  // draw ring as a cover
-  graphics_context_set_fill_color(ctx, drawing_data.back_color);
-  prv_render_progress_ring_cover(ctx, bounds, drawing_data.progress_angle);
+  prv_render_progress_ring(ctx, bounds);
   // draw main circle
   graphics_context_set_fill_color(ctx, drawing_data.mid_color);
-  graphics_fill_circle(ctx, grect_center_point(&bounds), CIRCLE_RADIUS);
+  //graphics_fill_circle(ctx, grect_center_point(&bounds), CIRCLE_RADIUS);
 }
 
 // Initialize the singleton drawing data
@@ -137,13 +115,13 @@ void drawing_initialize(Layer *layer) {
   // set visual states
   drawing_data.progress_angle = 0;
   // set the values
-  drawing_set_current_value(100000);
+  drawing_set_current_value(200000);
   drawing_set_total_value(300000);
   // set the colors
   drawing_data.fore_color = GColorBlack;
-  drawing_data.mid_color = COLOR_FALLBACK(GColorPastelYellow, GColorWhite);
-  drawing_data.ring_color = COLOR_FALLBACK(GColorOrange, GColorWhite);
-  drawing_data.back_color = COLOR_FALLBACK(GColorDarkGray, GColorBlack);
+  drawing_data.mid_color = PBL_IF_COLOR_ELSE(GColorPastelYellow, GColorWhite);
+  drawing_data.ring_color = PBL_IF_COLOR_ELSE(GColorOrange, GColorWhite);
+  drawing_data.back_color = PBL_IF_COLOR_ELSE(GColorDarkGray, GColorBlack);
   // set animation update callback
   animation_register_update_callback(&prv_animation_update_callback);
 }

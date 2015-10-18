@@ -9,6 +9,7 @@
 //! @date September 1, 2015
 //! @bugs No known bugs
 
+#pragma once
 #include <pebble.h>
 
 //! Animate an integer by its pointer
