@@ -10,13 +10,8 @@
 #pragma once
 #include <pebble.h>
 
-//! Set the current timer value used when drawing
-//! @param current_value The current time on the timer (milliseconds)
-void drawing_set_current_value(int64_t current_value);
-
-//! Set the total timer value used when drawing
-//! @param total_value The total time on the timer (milliseconds)
-void drawing_set_total_value(int64_t total_value);
+//! Update the progress ring angle based on the timer values
+void drawing_update_progress_ring_angle(void);
 
 //! Render everything to the screen
 //! @param layer The layer being rendered onto

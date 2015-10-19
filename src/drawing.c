@@ -9,6 +9,7 @@
 
 #include <pebble.h>
 #include "animation.h"
+#include "main.h"
 #include "text_render.h"
 #include "utility.h"
 
@@ -19,13 +20,21 @@
 #define MAIN_TEXT_CIRCLE_RADIUS (CIRCLE_RADIUS - 7)
 #define MAIN_TEXT_BOUNDS GRect(-MAIN_TEXT_CIRCLE_RADIUS, -MAIN_TEXT_CIRCLE_RADIUS / 2,\
  MAIN_TEXT_CIRCLE_RADIUS * 2, MAIN_TEXT_CIRCLE_RADIUS)
+#define TEXT_FIELD_COUNT 5
+
+// Main text state description
+typedef struct {
+  TimerMode   timer_mode;   //< The timer control mode at that state
+  uint8_t     hr_digits;    //< The number of digits used by the hours
+  uint8_t     min_digits;   //< The number of digits used by the minutes
+} TextState;
 
 // Main data
 static struct {
   Layer       *layer;             //< The main layer being drawn on, used to force a refresh
-  int64_t     current_value;      //< The current timer time value (milliseconds)
-  int64_t     total_value;        //< The total timer time value (milliseconds)
   int32_t     progress_angle;     //< The current angle of the progress ring
+  TextState   text_state;         //< An arbitrary description of the main text state
+  GRect       text_fields[TEXT_FIELD_COUNT];  //< The number of text fields (hr : min : sec)
   GColor      fore_color;         //< Color of text
   GColor      mid_color;          //< Color of center
   GColor      ring_color;         //< Color of ring
@@ -60,7 +69,7 @@ static void prv_render_progress_ring(GContext *ctx, GRect bounds) {
 // Update the progress ring position based on the current and total values
 static void prv_progress_ring_update(void) {
   // calculate new angle
-  int32_t new_angle = TRIG_MAX_ANGLE * drawing_data.current_value / drawing_data.total_value;
+  int32_t new_angle = TRIG_MAX_ANGLE * main_get_timer_value() / main_get_timer_length();
   // check if large angle and animate
   animation_stop(&drawing_data.progress_angle);
   if (abs(new_angle - drawing_data.progress_angle) >= ANGLE_CHANGE_ANI_THRESHOLD) {
@@ -72,40 +81,77 @@ static void prv_progress_ring_update(void) {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// Private Functions
+// Main Text
 //
+
+// Create a state description for the main text
+static TextState prv_text_state_create(TimerMode timer_mode, uint8_t hours, uint8_t minutes) {
+  return (TextState) {
+    .timer_mode = timer_mode,
+    .hr_digits = (hours + 9) / 10,
+    .min_digits = (minutes + 9) / 10,
+  };
+}
+
+// Compare two different TextStates, return true if same
+static bool prv_text_state_compare(TextState text_state_1, TextState text_state_2) {
+  return text_state_1.timer_mode == text_state_2.timer_mode &&
+         text_state_1.hr_digits == text_state_2.hr_digits &&
+         text_state_1.min_digits == text_state_2.min_digits;
+}
 
 // Draw main text onto drawing context
 static void prv_render_main_text(GContext *ctx, GRect bounds) {
   // calculate time parts
-  int hr = drawing_data.current_value / MSEC_IN_HR;
-  int min = drawing_data.current_value % MSEC_IN_HR / MSEC_IN_MIN;
-  int sec = drawing_data.current_value % MSEC_IN_MIN / MSEC_IN_SEC;
+  int64_t timer_value = main_get_timer_value();
+  int hr = timer_value / MSEC_IN_HR;
+  int min = timer_value % MSEC_IN_HR / MSEC_IN_MIN;
+  int sec = timer_value % MSEC_IN_MIN / MSEC_IN_SEC;
   // convert to strings
-  char hr_buff[4], min_buff[3], sec_buff[3], tot_buff[6];
-  snprintf(hr_buff, sizeof(hr_buff), "%d", hr);
-  snprintf(min_buff, sizeof(min_buff), hr ? "%02d" : "%d", min);
-  snprintf(sec_buff, sizeof(sec_buff), "%02d", sec);
-  snprintf(tot_buff, sizeof(tot_buff), "%d:%02d", min, sec);
-  // calculate bounds of main text elements
-  uint16_t font_size = text_render_get_max_font_size(tot_buff, MAIN_TEXT_BOUNDS);
-  GRect min_bounds = text_render_get_content_bounds(min_buff, font_size);
-  GRect col_bounds = text_render_get_content_bounds(":", font_size);
-  GRect sec_bounds = text_render_get_content_bounds(sec_buff, font_size);
-  GRect tot_bounds;
-  tot_bounds.size.w = min_bounds.size.w + col_bounds.size.w + sec_bounds.size.w;
-  tot_bounds.size.h = min_bounds.size.h;
-  tot_bounds.origin.x = (bounds.size.w - tot_bounds.size.w) / 2;
-  tot_bounds.origin.y = (bounds.size.h - tot_bounds.size.h) / 2;
-  min_bounds.origin = tot_bounds.origin;
-  col_bounds.origin.x = min_bounds.origin.x + min_bounds.size.w;
-  col_bounds.origin.y = min_bounds.origin.y;
-  sec_bounds.origin.x = col_bounds.origin.x + col_bounds.size.w;
-  sec_bounds.origin.y = col_bounds.origin.y;
+  char buff[TEXT_FIELD_COUNT][4];
+  char hr_buff[4], col1_buff[2], min_buff[3], col2_buff[2], sec_buff[3];
+  if (hr) {
+    snprintf(buff[0], sizeof(buff[0]), "%d", hr);
+  } else {
+    snprintf(buff[0], sizeof(buff[0]), "%s", "\0");
+  }
+  snprintf(buff[1], sizeof(buff[1]), "%s", hr ? ":" : "\0");
+  snprintf(buff[2], sizeof(buff[2]), hr ? "%02d" : "%d", min);
+  snprintf(buff[3], sizeof(buff[3]), "%s", ":");
+  snprintf(buff[4], sizeof(buff[4]), "%02d", sec);
+  // compare old state description with new state description
+  TextState cur_text_state = prv_text_state_create(main_get_timer_mode(), hr, min);
+  if (!prv_text_state_compare(cur_text_state, drawing_data.text_state)) {
+    // set the old state to the new one
+    drawing_data.text_state = cur_text_state;
+    // calculate new sizes for all text elements
+    char tot_buff[8];
+    snprintf(tot_buff, sizeof(tot_buff), "%s%s%s%s%s", buff[0], buff[1], buff[2], buff[3], buff[4]);
+    uint16_t font_size = text_render_get_max_font_size(tot_buff, MAIN_TEXT_BOUNDS);
+    // calculate new size for each text element
+    GRect total_bounds = GRectZero;
+    GRect field_bounds[TEXT_FIELD_COUNT];
+    for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
+      field_bounds[ii] = text_render_get_content_bounds(buff[ii], font_size);
+      total_bounds.size.w += field_bounds[ii].size.w;
+    }
+    total_bounds.size.h = field_bounds[TEXT_FIELD_COUNT - 1].size.h;
+    total_bounds.origin.x = (bounds.size.w - total_bounds.size.w) / 2;
+    total_bounds.origin.y = (bounds.size.h - total_bounds.size.h) / 2;
+    // calculate positions for all text elements and animate old positions
+    field_bounds[0].origin = total_bounds.origin;
+    for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT - 1; ii++) {
+      field_bounds[ii + 1].origin.x = field_bounds[ii].origin.x + field_bounds[ii].size.w;
+      field_bounds[ii + 1].origin.y = total_bounds.origin.y;
+      // TODO: Make these actual animations
+      drawing_data.text_fields[ii] = field_bounds[ii];
+    }
+    drawing_data.text_fields[TEXT_FIELD_COUNT - 1] = field_bounds[TEXT_FIELD_COUNT - 1];
+  }
   // draw the main text elements in their respective bounds
-  text_render_draw_text(ctx, min_buff, font_size, min_bounds.origin);
-  text_render_draw_text(ctx, ":", font_size, col_bounds.origin);
-  text_render_draw_text(ctx, sec_buff, font_size, sec_bounds.origin);
+  for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
+    text_render_draw_scalable_text(ctx, buff[ii], drawing_data.text_fields[ii]);
+  }
 }
 
 // Animation update callback
@@ -119,21 +165,14 @@ static void prv_animation_update_callback(void) {
 // API Implementation
 //
 
-// Set the current timer value used when drawing
-void drawing_set_current_value(int64_t current_value) {
-  drawing_data.current_value = current_value;
-  prv_progress_ring_update();
-}
-
-// Set the total timer value used when drawing
-void drawing_set_total_value(int64_t total_value) {
-  drawing_data.total_value = total_value;
+// Update the progress ring angle based on the timer values
+void drawing_update_progress_ring_angle(void) {
   prv_progress_ring_update();
 }
 
 // Render everything to the screen
 void drawing_render(Layer *layer, GContext *ctx) {
-  // get layer bounds
+  // get properties
   GRect bounds = layer_get_bounds(layer);
   // draw background
   // this is actually the ring, which is then covered up with the background
@@ -155,9 +194,6 @@ void drawing_initialize(Layer *layer) {
   drawing_data.layer = layer;
   // set visual states
   drawing_data.progress_angle = 0;
-  // set the values
-  drawing_set_current_value(200000);
-  drawing_set_total_value(300000);
   // set the colors
   drawing_data.fore_color = GColorBlack;
   drawing_data.mid_color = PBL_IF_COLOR_ELSE(GColorPastelYellow, GColorWhite);
