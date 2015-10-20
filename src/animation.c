@@ -54,6 +54,33 @@ static int32_t prv_curve_quad_ease_in_out(int32_t from, int32_t to, uint32_t per
   return -(to - from) / 2 * (t_percent * (t_percent - 200) - 10000) / 10000 + from;
 }
 
+// Step a GRect animation
+static void prv_animation_step_grect(AnimationNode *node) {
+  // set from grect on first call, allowing another animation to change the target value
+  // while this animation is delayed
+  if (!node->from) {
+    node->from = MALLOC(sizeof(GRect));
+    (*(GRect*)node->from) = (*(GRect*)node->target);
+  }
+  // step value
+  GRect from = (*(GRect*)node->from);
+  GRect to = (*(GRect*)node->to);
+  uint32_t percent_max = node->duration;
+  uint32_t percent = epoch() - (node->start_time + node->delay);
+  (*(GRect*)node->target).origin.x = prv_curve_quad_ease_in_out(from.origin.x, to.origin.x, percent,
+    percent_max);
+  (*(GRect*)node->target).origin.y = prv_curve_quad_ease_in_out(from.origin.y, to.origin.y, percent,
+    percent_max);
+  (*(GRect*)node->target).size.w = prv_curve_quad_ease_in_out(from.size.w, to.size.w, percent,
+    percent_max);
+  (*(GRect*)node->target).size.h = prv_curve_quad_ease_in_out(from.size.h, to.size.h, percent,
+    percent_max);
+  // continue animation
+  if (percent >= percent_max) {
+    animation_stop(node->target);
+  }
+}
+
 // Step a int32 animation
 static void prv_animation_step_int32(AnimationNode *node) {
   // set from value on first call, allowing another animation to change the target value
@@ -119,6 +146,24 @@ static void prv_animation_timer_start(void) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // API Functions
 //
+
+// Animate a GRect by its pointer
+void animation_grect_start(GRect *ptr, GRect to, uint32_t duration, uint32_t delay) {
+  // create and add new node
+  AnimationNode *new_node = (AnimationNode*)MALLOC(sizeof(AnimationNode));
+  new_node->step_func = &prv_animation_step_grect;
+  new_node->target = ptr;
+  new_node->from = NULL; // assigned on first "step" callback in case of delayed animation
+  new_node->to = MALLOC(sizeof(GRect));
+  (*(GRect*)new_node->to) = to;
+  new_node->start_time = epoch();
+  new_node->duration = duration;
+  new_node->delay = delay;
+  new_node->next = NULL;
+  prv_list_add_node(new_node);
+  // start animation timer if not running
+  prv_animation_timer_start();
+}
 
 // Animate an integer by its pointer
 void animation_int32_start(int32_t *ptr, int32_t to, uint32_t duration, uint32_t delay) {

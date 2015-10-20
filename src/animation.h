@@ -12,6 +12,13 @@
 #pragma once
 #include <pebble.h>
 
+//! Animate a GRect by its pointer
+//! @param prt A pointer to the GRect to animate
+//! @param to The GRect to animate the pointer to
+//! @param duration The length of time over which to animate the GRect
+//! @param delay The length of time to wait before running the animation
+void animation_grect_start(GRect *ptr, GRect to, uint32_t duration, uint32_t delay);
+
 //! Animate an integer by its pointer
 //! @param ptr A pointer to the integer to animate
 //! @param to The value to animate the pointer value to

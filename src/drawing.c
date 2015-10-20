@@ -16,11 +16,12 @@
 // Drawing constants
 #define CIRCLE_RADIUS 60
 #define ANGLE_CHANGE_ANI_THRESHOLD 348
-#define PROGRESS_ANI_DURATION 500
+#define PROGRESS_ANI_DURATION 750
 #define MAIN_TEXT_CIRCLE_RADIUS (CIRCLE_RADIUS - 7)
 #define MAIN_TEXT_BOUNDS GRect(-MAIN_TEXT_CIRCLE_RADIUS, -MAIN_TEXT_CIRCLE_RADIUS / 2,\
  MAIN_TEXT_CIRCLE_RADIUS * 2, MAIN_TEXT_CIRCLE_RADIUS)
 #define TEXT_FIELD_COUNT 5
+#define TEXT_FIELD_ANI_DURATION 250
 
 // Main text state description
 typedef struct {
@@ -138,15 +139,17 @@ static void prv_render_main_text(GContext *ctx, GRect bounds) {
     total_bounds.size.h = field_bounds[TEXT_FIELD_COUNT - 1].size.h;
     total_bounds.origin.x = (bounds.size.w - total_bounds.size.w) / 2;
     total_bounds.origin.y = (bounds.size.h - total_bounds.size.h) / 2;
-    // calculate positions for all text elements and animate old positions
+    // calculate positions for all text elements
     field_bounds[0].origin = total_bounds.origin;
     for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT - 1; ii++) {
       field_bounds[ii + 1].origin.x = field_bounds[ii].origin.x + field_bounds[ii].size.w;
       field_bounds[ii + 1].origin.y = total_bounds.origin.y;
-      // TODO: Make these actual animations
-      drawing_data.text_fields[ii] = field_bounds[ii];
     }
-    drawing_data.text_fields[TEXT_FIELD_COUNT - 1] = field_bounds[TEXT_FIELD_COUNT - 1];
+    // animate to new positions
+    for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
+      animation_grect_start(&drawing_data.text_fields[ii], field_bounds[ii],
+        TEXT_FIELD_ANI_DURATION, 0);
+    }
   }
   // draw the main text elements in their respective bounds
   for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
@@ -190,10 +193,16 @@ void drawing_render(Layer *layer, GContext *ctx) {
 
 // Initialize the singleton drawing data
 void drawing_initialize(Layer *layer) {
+  // get properties
+  GRect bounds = layer_get_bounds(layer);
   // set the layer
   drawing_data.layer = layer;
   // set visual states
   drawing_data.progress_angle = 0;
+  for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
+    drawing_data.text_fields[ii].origin = grect_center_point(&bounds);
+    drawing_data.text_fields[ii].size = GSizeZero;
+  }
   // set the colors
   drawing_data.fore_color = GColorBlack;
   drawing_data.mid_color = PBL_IF_COLOR_ELSE(GColorPastelYellow, GColorWhite);
