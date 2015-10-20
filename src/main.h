@@ -14,9 +14,10 @@
 
 // Current timer mode
 typedef enum {
-  TimerModeCounting,
+  TimerModeEditHr,
   TimerModeEditMin,
-  TimerModeEditSec
+  TimerModeEditSec,
+  TimerModeCounting
 } TimerMode;
 
 

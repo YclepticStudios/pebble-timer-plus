@@ -53,16 +53,48 @@ static void prv_layer_update_proc_handler(Layer *layer, GContext *ctx) {
   drawing_render(layer, ctx);
 }
 
+// Back click handler
+static void prv_back_click_handler(ClickRecognizerRef recognizer, void *ctx) {
+  // change timer mode
+  if (main_data.timer_mode == TimerModeEditHr || main_data.timer_mode == TimerModeCounting) {
+    window_stack_pop(true);
+  } else {
+    main_data.timer_mode--;
+  }
+}
+
 // Up click handler
 static void prv_up_click_handler(ClickRecognizerRef recognizer, void *ctx) {
-
+  // add time to timer by increasing total timer time
+  if (main_data.timer_mode == TimerModeEditHr) {
+    main_data.timer_length += MSEC_IN_HR;
+    if (main_data.timer_length / MSEC_IN_HR > 99) {
+      main_data.timer_length -= MSEC_IN_HR * 100;
+    }
+  } else if (main_data.timer_mode == TimerModeEditMin) {
+    int16_t hr = main_data.timer_length / MSEC_IN_HR;
+    main_data.timer_length += MSEC_IN_MIN;
+    if (main_data.timer_length / MSEC_IN_HR > hr && hr) {
+      main_data.timer_length -= MSEC_IN_MIN * MIN_IN_HR;
+    }
+  } else if (main_data.timer_mode == TimerModeEditSec) {
+    int16_t min = main_data.timer_length / MSEC_IN_MIN;
+    main_data.timer_length += MSEC_IN_SEC;
+    if (main_data.timer_length / MSEC_IN_MIN > min) {
+      main_data.timer_length -= MSEC_IN_SEC * SEC_IN_MIN;
+    }
+  }
+  // refresh
+  layer_mark_dirty(main_data.layer);
 }
 
 // Select click handler
 static void prv_select_click_handler(ClickRecognizerRef recognizer, void *ctx) {
-  main_data.timer_mode++;
-  if (main_data.timer_mode > TimerModeEditSec) {
-    main_data.timer_mode = TimerModeCounting;
+  // change timer mode
+  if (main_data.timer_mode == TimerModeCounting) {
+    main_data.timer_mode = TimerModeEditSec;
+  } else {
+    main_data.timer_mode++;
   }
   // refresh
   layer_mark_dirty(main_data.layer);
@@ -70,11 +102,32 @@ static void prv_select_click_handler(ClickRecognizerRef recognizer, void *ctx) {
 
 // Down click handler
 static void prv_down_click_handler(ClickRecognizerRef recognizer, void *ctx) {
-
+  // subtract time from timer by decreasing total timer time
+  if (main_data.timer_mode == TimerModeEditHr) {
+    main_data.timer_length -= MSEC_IN_HR;
+    if (main_data.timer_length < 0) {
+      main_data.timer_length += MSEC_IN_HR * 100;
+    }
+  } else if (main_data.timer_mode == TimerModeEditMin) {
+    int16_t hr = main_data.timer_length / MSEC_IN_HR;
+    main_data.timer_length -= MSEC_IN_MIN;
+    if (main_data.timer_length / MSEC_IN_HR < hr || main_data.timer_length < 0) {
+      main_data.timer_length += MSEC_IN_MIN * MIN_IN_HR;
+    }
+  } else if (main_data.timer_mode == TimerModeEditSec) {
+    int16_t min = main_data.timer_length / MSEC_IN_MIN;
+    main_data.timer_length -= MSEC_IN_SEC;
+    if (main_data.timer_length / MSEC_IN_MIN < min || main_data.timer_length < 0) {
+      main_data.timer_length += MSEC_IN_SEC * SEC_IN_MIN;
+    }
+  }
+  // refresh
+  layer_mark_dirty(main_data.layer);
 }
 
 // Click configuration provider
 static void prv_click_config_provider(void *ctx) {
+  window_single_click_subscribe(BUTTON_ID_BACK, prv_back_click_handler);
   window_single_click_subscribe(BUTTON_ID_UP, prv_up_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, prv_down_click_handler);
@@ -105,8 +158,8 @@ static void prv_initialize(void) {
   layer_add_child(window_root, main_data.layer);
 
   // set dummy timer values
-  main_data.timer_start = -123000;
-  main_data.timer_length = 400000;
+  main_data.timer_start = 0;
+  main_data.timer_length = 300000;
   main_data.timer_mode = TimerModeCounting;
   drawing_update_progress_ring_angle();
 
