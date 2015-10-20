@@ -20,7 +20,11 @@
 #define MAIN_TEXT_CIRCLE_RADIUS (CIRCLE_RADIUS - 7)
 #define MAIN_TEXT_BOUNDS GRect(-MAIN_TEXT_CIRCLE_RADIUS, -MAIN_TEXT_CIRCLE_RADIUS / 2,\
  MAIN_TEXT_CIRCLE_RADIUS * 2, MAIN_TEXT_CIRCLE_RADIUS)
+#define MAIN_TEXT_CIRCLE_RADIUS_EDIT (CIRCLE_RADIUS - 15)
+#define MAIN_TEXT_BOUNDS_EDIT GRect(-MAIN_TEXT_CIRCLE_RADIUS_EDIT, \
+ -MAIN_TEXT_CIRCLE_RADIUS_EDIT / 2, MAIN_TEXT_CIRCLE_RADIUS_EDIT * 2, MAIN_TEXT_CIRCLE_RADIUS_EDIT)
 #define TEXT_FIELD_COUNT 5
+#define TEXT_FIELD_EDIT_SPACING 10
 #define TEXT_FIELD_ANI_DURATION 250
 
 // Main text state description
@@ -111,14 +115,15 @@ static void prv_render_main_text(GContext *ctx, GRect bounds) {
   // convert to strings
   char buff[TEXT_FIELD_COUNT][4];
   char hr_buff[4], col1_buff[2], min_buff[3], col2_buff[2], sec_buff[3];
+  bool edit = main_get_timer_mode() != TimerModeCounting;
   if (hr) {
-    snprintf(buff[0], sizeof(buff[0]), "%d", hr);
+    snprintf(buff[0], sizeof(buff[0]), edit ? "%02d" : "%d", hr);
   } else {
     snprintf(buff[0], sizeof(buff[0]), "%s", "\0");
   }
-  snprintf(buff[1], sizeof(buff[1]), "%s", hr ? ":" : "\0");
-  snprintf(buff[2], sizeof(buff[2]), hr ? "%02d" : "%d", min);
-  snprintf(buff[3], sizeof(buff[3]), "%s", ":");
+  snprintf(buff[1], sizeof(buff[1]), "%s", hr && !edit ? ":" : "\0");
+  snprintf(buff[2], sizeof(buff[2]), (hr || edit) ? "%02d" : "%d", min);
+  snprintf(buff[3], sizeof(buff[3]), "%s", edit ? "\0" : ":");
   snprintf(buff[4], sizeof(buff[4]), "%02d", sec);
   // compare old state description with new state description
   TextState cur_text_state = prv_text_state_create(main_get_timer_mode(), hr, min);
@@ -128,12 +133,17 @@ static void prv_render_main_text(GContext *ctx, GRect bounds) {
     // calculate new sizes for all text elements
     char tot_buff[8];
     snprintf(tot_buff, sizeof(tot_buff), "%s%s%s%s%s", buff[0], buff[1], buff[2], buff[3], buff[4]);
-    uint16_t font_size = text_render_get_max_font_size(tot_buff, MAIN_TEXT_BOUNDS);
+    uint16_t font_size = text_render_get_max_font_size(tot_buff, edit ? MAIN_TEXT_BOUNDS_EDIT :
+      MAIN_TEXT_BOUNDS);
     // calculate new size for each text element
     GRect total_bounds = GRectZero;
     GRect field_bounds[TEXT_FIELD_COUNT];
     for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
       field_bounds[ii] = text_render_get_content_bounds(buff[ii], font_size);
+      // if in edit mode and some fields have content and this one is '\0', then pad it
+      if (edit && total_bounds.size.w && field_bounds[ii].size.w == 0) {
+        field_bounds[ii].size.w = TEXT_FIELD_EDIT_SPACING;
+      }
       total_bounds.size.w += field_bounds[ii].size.w;
     }
     total_bounds.size.h = field_bounds[TEXT_FIELD_COUNT - 1].size.h;

@@ -64,6 +64,8 @@ static void prv_select_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   if (main_data.timer_mode > TimerModeEditSec) {
     main_data.timer_mode = TimerModeCounting;
   }
+  // refresh
+  layer_mark_dirty(main_data.layer);
 }
 
 // Down click handler
