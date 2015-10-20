@@ -56,7 +56,8 @@ static void prv_layer_update_proc_handler(Layer *layer, GContext *ctx) {
 // Back click handler
 static void prv_back_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   // change timer mode
-  if (main_data.timer_mode == TimerModeEditHr || main_data.timer_mode == TimerModeCounting) {
+  if (main_data.timer_mode == TimerModeEditHr || main_data.timer_mode == TimerModeCounting ||
+      (main_data.timer_length / MSEC_IN_HR == 0 && main_data.timer_mode == TimerModeEditMin)) {
     window_stack_pop(true);
   } else {
     main_data.timer_mode--;
@@ -65,6 +66,7 @@ static void prv_back_click_handler(ClickRecognizerRef recognizer, void *ctx) {
 
 // Up click handler
 static void prv_up_click_handler(ClickRecognizerRef recognizer, void *ctx) {
+  // TODO: Make this and the down increment cleaner
   // add time to timer by increasing total timer time
   if (main_data.timer_mode == TimerModeEditHr) {
     main_data.timer_length += MSEC_IN_HR;
@@ -83,6 +85,9 @@ static void prv_up_click_handler(ClickRecognizerRef recognizer, void *ctx) {
     if (main_data.timer_length / MSEC_IN_MIN > min) {
       main_data.timer_length -= MSEC_IN_SEC * SEC_IN_MIN;
     }
+  }
+  if (main_data.timer_mode == TimerModeEditHr && main_data.timer_length / MSEC_IN_HR == 0) {
+    main_data.timer_mode = TimerModeEditMin;
   }
   // refresh
   layer_mark_dirty(main_data.layer);
@@ -120,6 +125,9 @@ static void prv_down_click_handler(ClickRecognizerRef recognizer, void *ctx) {
     if (main_data.timer_length / MSEC_IN_MIN < min || main_data.timer_length < 0) {
       main_data.timer_length += MSEC_IN_SEC * SEC_IN_MIN;
     }
+  }
+  if (main_data.timer_mode == TimerModeEditHr && main_data.timer_length / MSEC_IN_HR == 0) {
+    main_data.timer_mode = TimerModeEditMin;
   }
   // refresh
   layer_mark_dirty(main_data.layer);
