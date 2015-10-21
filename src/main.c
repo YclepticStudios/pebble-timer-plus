@@ -62,6 +62,8 @@ static void prv_back_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   } else {
     main_data.timer_mode--;
   }
+  // refresh
+  layer_mark_dirty(main_data.layer);
 }
 
 // Up click handler

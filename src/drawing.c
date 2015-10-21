@@ -26,30 +26,179 @@
 #define TEXT_FIELD_COUNT 5
 #define TEXT_FIELD_EDIT_SPACING 7
 #define TEXT_FIELD_ANI_DURATION 250
+#define FOCUS_FIELD_COUNT 2
+#define FOCUS_FIELD_BORDER 5
+#define FOCUS_FIELD_PAUSE_RADIUS CIRCLE_RADIUS / 2
+#define FOCUS_FIELD_ANI_DURATION 150
 
-// Main text state description
+// Main drawing state description
 typedef struct {
   TimerMode   timer_mode;   //< The timer control mode at that state
   uint8_t     hr_digits;    //< The number of digits used by the hours
   uint8_t     min_digits;   //< The number of digits used by the minutes
-} TextState;
+} DrawState;
 
 // Main data
 static struct {
   Layer       *layer;             //< The main layer being drawn on, used to force a refresh
   int32_t     progress_angle;     //< The current angle of the progress ring
-  TextState   text_state;         //< An arbitrary description of the main text state
-  GRect       text_fields[TEXT_FIELD_COUNT];  //< The number of text fields (hr : min : sec)
+  DrawState   draw_state;         //< An arbitrary description of the main drawing state
+  GRect       text_fields[TEXT_FIELD_COUNT];      //< The number of text fields (hr : min : sec)
+  GRect       focus_fields[FOCUS_FIELD_COUNT];    //< The number of focus fields (selection layer)
   GColor      fore_color;         //< Color of text
   GColor      mid_color;          //< Color of center
   GColor      ring_color;         //< Color of ring
   GColor      back_color;         //< Color behind ring
 } drawing_data;
 
+// Focus layer data
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// Data Points for Visuals
+// Focus Layer
 //
+
+// Update focus layer drawing state
+static void prv_focus_layer_update_state(Layer *layer, GRect hr_bounds, GRect min_bounds,
+                                         GRect sec_bounds) {
+  // get properties
+  GRect bounds = layer_get_bounds(layer);
+  GRect pause_bounds;
+  // check current control mode
+  if (main_get_timer_mode() == TimerModeCounting) {
+    // calculate the size of the pause icon
+    pause_bounds.origin = grect_center_point(&bounds);
+    pause_bounds.origin.x -= FOCUS_FIELD_PAUSE_RADIUS;
+    pause_bounds.origin.y -= FOCUS_FIELD_PAUSE_RADIUS;
+    pause_bounds.size.w = FOCUS_FIELD_PAUSE_RADIUS * 2 / 3;
+    pause_bounds.size.h = FOCUS_FIELD_PAUSE_RADIUS * 2;
+    // animate first focus rectangle
+    animation_grect_start(&drawing_data.focus_fields[0], pause_bounds, FOCUS_FIELD_ANI_DURATION, 0);
+    // shift grect for rightmost part of pause symbol
+    pause_bounds.origin.x += FOCUS_FIELD_PAUSE_RADIUS * 4 / 3;
+    animation_grect_start(&drawing_data.focus_fields[1], pause_bounds, FOCUS_FIELD_ANI_DURATION, 0);
+  } else {
+    // get final grect
+    switch (main_get_timer_mode()) {
+      case TimerModeEditHr:
+        pause_bounds = hr_bounds;
+        break;
+      case TimerModeEditMin:
+        pause_bounds = min_bounds;
+        break;
+      case TimerModeEditSec:
+        pause_bounds = sec_bounds;
+        break;
+      default:
+        return;
+    }
+    // add border
+    pause_bounds = grect_inset(pause_bounds, GEdgeInsets1(-FOCUS_FIELD_BORDER));
+    // animate the focus field to those bounds
+    animation_grect_start(&drawing_data.focus_fields[0], pause_bounds, FOCUS_FIELD_ANI_DURATION, 0);
+    animation_grect_start(&drawing_data.focus_fields[1], pause_bounds, FOCUS_FIELD_ANI_DURATION, 0);
+  }
+}
+
+// Draw the focus layer
+static void prv_render_focus_layer(GContext *ctx, GRect bounds) {
+  graphics_context_set_fill_color(ctx, drawing_data.ring_color);
+  graphics_fill_rect(ctx, drawing_data.focus_fields[0], 0, GCornerNone);
+  graphics_fill_rect(ctx, drawing_data.focus_fields[1], 0, GCornerNone);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Main Text
+//
+
+// Update main text drawing state
+static void prv_main_text_update_state(Layer *layer) {
+  // get properties
+  GRect bounds = layer_get_bounds(layer);
+  bool edit_mode = main_get_timer_mode() != TimerModeCounting;
+  // calculate time parts
+  int64_t timer_value = main_get_timer_value();
+  int hr = timer_value / MSEC_IN_HR;
+  int min = timer_value % MSEC_IN_HR / MSEC_IN_MIN;
+  int sec = timer_value % MSEC_IN_MIN / MSEC_IN_SEC;
+  // convert to strings
+  char buff[TEXT_FIELD_COUNT][4];
+  bool edit = main_get_timer_mode() != TimerModeCounting;
+  if (hr) {
+    snprintf(buff[0], sizeof(buff[0]), edit ? "%02d" : "%d", hr);
+  } else {
+    snprintf(buff[0], sizeof(buff[0]), "%s", "\0");
+  }
+  snprintf(buff[1], sizeof(buff[1]), "%s", hr && !edit ? ":" : "\0");
+  snprintf(buff[2], sizeof(buff[2]), (hr || edit) ? "%02d" : "%d", min);
+  snprintf(buff[3], sizeof(buff[3]), "%s", edit ? "\0" : ":");
+  snprintf(buff[4], sizeof(buff[4]), "%02d", sec);
+  // calculate new sizes for all text elements
+  char tot_buff[8];
+  snprintf(tot_buff, sizeof(tot_buff), "%s%s%s%s%s", buff[0], buff[1], buff[2], buff[3], buff[4]);
+  uint16_t font_size = text_render_get_max_font_size(tot_buff, edit_mode ? MAIN_TEXT_BOUNDS_EDIT :
+                                                               MAIN_TEXT_BOUNDS);
+  // calculate new size for each text element
+  GRect total_bounds = GRectZero;
+  GRect field_bounds[TEXT_FIELD_COUNT];
+  for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
+    field_bounds[ii] = text_render_get_content_bounds(buff[ii], font_size);
+    // if in edit mode and some fields have content and this one is '\0', then pad it
+    if (edit_mode && total_bounds.size.w && field_bounds[ii].size.w == 0) {
+      field_bounds[ii].size.w = TEXT_FIELD_EDIT_SPACING;
+    }
+    total_bounds.size.w += field_bounds[ii].size.w;
+  }
+  total_bounds.size.h = field_bounds[TEXT_FIELD_COUNT - 1].size.h;
+  total_bounds.origin.x = (bounds.size.w - total_bounds.size.w) / 2;
+  total_bounds.origin.y = (bounds.size.h - total_bounds.size.h) / 2;
+  // calculate positions for all text elements
+  field_bounds[0].origin = total_bounds.origin;
+  for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT - 1; ii++) {
+    field_bounds[ii + 1].origin.x = field_bounds[ii].origin.x + field_bounds[ii].size.w;
+    field_bounds[ii + 1].origin.y = total_bounds.origin.y;
+  }
+  // animate to new positions
+  for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
+    animation_grect_start(&drawing_data.text_fields[ii], field_bounds[ii],
+                          TEXT_FIELD_ANI_DURATION, 0);
+  }
+
+  // update the focus layers
+  prv_focus_layer_update_state(layer, field_bounds[0], field_bounds[2], field_bounds[4]);
+}
+
+// Draw main text onto drawing context
+static void prv_render_main_text(GContext *ctx, GRect bounds) {
+  // calculate time parts
+  int64_t timer_value = main_get_timer_value();
+  int hr = timer_value / MSEC_IN_HR;
+  int min = timer_value % MSEC_IN_HR / MSEC_IN_MIN;
+  int sec = timer_value % MSEC_IN_MIN / MSEC_IN_SEC;
+  // convert to strings
+  char buff[TEXT_FIELD_COUNT][4];
+  bool edit = main_get_timer_mode() != TimerModeCounting;
+  if (hr) {
+    snprintf(buff[0], sizeof(buff[0]), edit ? "%02d" : "%d", hr);
+  } else {
+    snprintf(buff[0], sizeof(buff[0]), "%s", "\0");
+  }
+  snprintf(buff[1], sizeof(buff[1]), "%s", hr && !edit ? ":" : "\0");
+  snprintf(buff[2], sizeof(buff[2]), (hr || edit) ? "%02d" : "%d", min);
+  snprintf(buff[3], sizeof(buff[3]), "%s", edit ? "\0" : ":");
+  snprintf(buff[4], sizeof(buff[4]), "%02d", sec);
+  // draw the main text elements in their respective bounds
+  for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
+    text_render_draw_scalable_text(ctx, buff[ii], drawing_data.text_fields[ii]);
+  }
+}
+
+// Animation update callback
+static void prv_animation_update_callback(void) {
+  // refresh
+  layer_mark_dirty(drawing_data.layer);
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -86,91 +235,38 @@ static void prv_progress_ring_update(void) {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// Main Text
+// Drawing State Changes
 //
 
-// Create a state description for the main text
-static TextState prv_text_state_create(TimerMode timer_mode, uint8_t hours, uint8_t minutes) {
-  return (TextState) {
+// Compare two different TextStates, return true if same
+static bool prv_text_state_compare(DrawState text_state_1, DrawState text_state_2) {
+  return text_state_1.timer_mode == text_state_2.timer_mode &&
+         text_state_1.hr_digits == text_state_2.hr_digits &&
+         text_state_1.min_digits == text_state_2.min_digits;
+}
+
+// Create a state description
+static DrawState prv_draw_state_create(TimerMode timer_mode, int64_t timer_current) {
+  uint8_t hours = timer_current / MSEC_IN_HR;
+  uint8_t minutes = timer_current % MSEC_IN_HR / MSEC_IN_MIN;
+  return (DrawState) {
     .timer_mode = timer_mode,
     .hr_digits = (hours + 9) / 10,
     .min_digits = (minutes + 9) / 10,
   };
 }
 
-// Compare two different TextStates, return true if same
-static bool prv_text_state_compare(TextState text_state_1, TextState text_state_2) {
-  return text_state_1.timer_mode == text_state_2.timer_mode &&
-         text_state_1.hr_digits == text_state_2.hr_digits &&
-         text_state_1.min_digits == text_state_2.min_digits;
-}
-
-// Draw main text onto drawing context
-static void prv_render_main_text(GContext *ctx, GRect bounds) {
-  // calculate time parts
-  int64_t timer_value = main_get_timer_value();
-  int hr = timer_value / MSEC_IN_HR;
-  int min = timer_value % MSEC_IN_HR / MSEC_IN_MIN;
-  int sec = timer_value % MSEC_IN_MIN / MSEC_IN_SEC;
-  // convert to strings
-  char buff[TEXT_FIELD_COUNT][4];
-  char hr_buff[4], col1_buff[2], min_buff[3], col2_buff[2], sec_buff[3];
-  bool edit = main_get_timer_mode() != TimerModeCounting;
-  if (hr) {
-    snprintf(buff[0], sizeof(buff[0]), edit ? "%02d" : "%d", hr);
-  } else {
-    snprintf(buff[0], sizeof(buff[0]), "%s", "\0");
-  }
-  snprintf(buff[1], sizeof(buff[1]), "%s", hr && !edit ? ":" : "\0");
-  snprintf(buff[2], sizeof(buff[2]), (hr || edit) ? "%02d" : "%d", min);
-  snprintf(buff[3], sizeof(buff[3]), "%s", edit ? "\0" : ":");
-  snprintf(buff[4], sizeof(buff[4]), "%02d", sec);
-  // compare old state description with new state description
-  TextState cur_text_state = prv_text_state_create(main_get_timer_mode(), hr, min);
-  if (!prv_text_state_compare(cur_text_state, drawing_data.text_state)) {
+// Check for draw state changes and update drawing accordingly
+static void prv_update_draw_state(Layer *layer) {
+  // check for changes in the states of things
+  DrawState cur_text_state = prv_draw_state_create(main_get_timer_mode(), main_get_timer_value());
+  if (!prv_text_state_compare(cur_text_state, drawing_data.draw_state)) {
     // set the old state to the new one
-    drawing_data.text_state = cur_text_state;
-    // calculate new sizes for all text elements
-    char tot_buff[8];
-    snprintf(tot_buff, sizeof(tot_buff), "%s%s%s%s%s", buff[0], buff[1], buff[2], buff[3], buff[4]);
-    uint16_t font_size = text_render_get_max_font_size(tot_buff, edit ? MAIN_TEXT_BOUNDS_EDIT :
-      MAIN_TEXT_BOUNDS);
-    // calculate new size for each text element
-    GRect total_bounds = GRectZero;
-    GRect field_bounds[TEXT_FIELD_COUNT];
-    for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
-      field_bounds[ii] = text_render_get_content_bounds(buff[ii], font_size);
-      // if in edit mode and some fields have content and this one is '\0', then pad it
-      if (edit && total_bounds.size.w && field_bounds[ii].size.w == 0) {
-        field_bounds[ii].size.w = TEXT_FIELD_EDIT_SPACING;
-      }
-      total_bounds.size.w += field_bounds[ii].size.w;
-    }
-    total_bounds.size.h = field_bounds[TEXT_FIELD_COUNT - 1].size.h;
-    total_bounds.origin.x = (bounds.size.w - total_bounds.size.w) / 2;
-    total_bounds.origin.y = (bounds.size.h - total_bounds.size.h) / 2;
-    // calculate positions for all text elements
-    field_bounds[0].origin = total_bounds.origin;
-    for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT - 1; ii++) {
-      field_bounds[ii + 1].origin.x = field_bounds[ii].origin.x + field_bounds[ii].size.w;
-      field_bounds[ii + 1].origin.y = total_bounds.origin.y;
-    }
-    // animate to new positions
-    for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
-      animation_grect_start(&drawing_data.text_fields[ii], field_bounds[ii],
-        TEXT_FIELD_ANI_DURATION, 0);
-    }
+    drawing_data.draw_state = cur_text_state;
+    // update drawing functions
+    // focus update called in main text update
+    prv_main_text_update_state(layer);
   }
-  // draw the main text elements in their respective bounds
-  for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
-    text_render_draw_scalable_text(ctx, buff[ii], drawing_data.text_fields[ii]);
-  }
-}
-
-// Animation update callback
-static void prv_animation_update_callback(void) {
-  // refresh
-  layer_mark_dirty(drawing_data.layer);
 }
 
 
@@ -185,6 +281,9 @@ void drawing_update_progress_ring_angle(void) {
 
 // Render everything to the screen
 void drawing_render(Layer *layer, GContext *ctx) {
+  // check for drawing state changes
+  prv_update_draw_state(layer);
+
   // get properties
   GRect bounds = layer_get_bounds(layer);
   // draw background
@@ -195,6 +294,8 @@ void drawing_render(Layer *layer, GContext *ctx) {
   // draw main circle
   graphics_context_set_fill_color(ctx, drawing_data.mid_color);
   graphics_fill_circle(ctx, grect_center_point(&bounds), CIRCLE_RADIUS);
+  // draw focus layer
+  prv_render_focus_layer(ctx, bounds);
   // draw main text (drawn as filled and stroked path)
   graphics_context_set_stroke_color(ctx, drawing_data.fore_color);
   graphics_context_set_fill_color(ctx, drawing_data.fore_color);
@@ -212,6 +313,10 @@ void drawing_initialize(Layer *layer) {
   for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
     drawing_data.text_fields[ii].origin = grect_center_point(&bounds);
     drawing_data.text_fields[ii].size = GSizeZero;
+  }
+  for (uint8_t ii = 0; ii < FOCUS_FIELD_COUNT; ii++) {
+    drawing_data.focus_fields[ii].origin = grect_center_point(&bounds);
+    drawing_data.focus_fields[ii].size = GSizeZero;
   }
   // set the colors
   drawing_data.fore_color = GColorBlack;

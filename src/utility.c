@@ -17,6 +17,12 @@
 //
 
 #ifdef PBL_SDK_2
+// Calculate an inset grect
+GRect grect_inset(GRect bounds, int16_t inset) {
+  return GRect(bounds.origin.x + inset, bounds.origin.y + inset,
+               bounds.size.w - inset * 2, bounds.size.h - inset * 2);
+}
+
 // Get a point from a center point, angle, and radius
 static GPoint prv_polar_to_rectangular(GPoint center, int32_t angle, int16_t radius) {
   return GPoint((sin_lookup(angle) * radius / TRIG_MAX_RATIO) + center.x,
