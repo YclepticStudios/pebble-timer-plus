@@ -10,6 +10,10 @@
 #pragma once
 #include <pebble.h>
 
+//! Create bounce animation for focus layer
+//! @param upward Animate the bounce upward or downward
+void drawing_start_bounce_animation(bool upward);
+
 //! Update the progress ring angle based on the timer values
 void drawing_update_progress_ring_angle(void);
 

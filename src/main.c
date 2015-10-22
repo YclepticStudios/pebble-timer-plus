@@ -91,6 +91,10 @@ static void prv_up_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   if (main_data.timer_mode == TimerModeEditHr && main_data.timer_length / MSEC_IN_HR == 0) {
     main_data.timer_mode = TimerModeEditMin;
   }
+  // animate
+  if (main_data.timer_mode != TimerModeCounting) {
+    drawing_start_bounce_animation(true);
+  }
   // refresh
   layer_mark_dirty(main_data.layer);
 }
@@ -130,6 +134,10 @@ static void prv_down_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   }
   if (main_data.timer_mode == TimerModeEditHr && main_data.timer_length / MSEC_IN_HR == 0) {
     main_data.timer_mode = TimerModeEditMin;
+  }
+  // animate
+  if (main_data.timer_mode != TimerModeCounting) {
+    drawing_start_bounce_animation(false);
   }
   // refresh
   layer_mark_dirty(main_data.layer);

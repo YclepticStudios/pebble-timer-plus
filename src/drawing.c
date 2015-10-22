@@ -30,6 +30,9 @@
 #define FOCUS_FIELD_BORDER 5
 #define FOCUS_FIELD_PAUSE_RADIUS CIRCLE_RADIUS / 2
 #define FOCUS_FIELD_ANI_DURATION 150
+#define FOCUS_BOUNCE_ANI_HEIGHT 6
+#define FOCUS_BOUNCE_ANI_DURATION 107
+#define FOCUS_BOUNCE_ANI_SETTLE_DURATION 214
 
 // Main drawing state description
 typedef struct {
@@ -273,6 +276,44 @@ static void prv_update_draw_state(Layer *layer) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // API Implementation
 //
+
+// Create bounce animation for focus layer
+void drawing_start_bounce_animation(bool upward) {
+  // TODO: Make this section cleaner
+  // get the currently selected elements
+  // only animate the position of one focus layer, stacking gives appearance of stretching
+  GRect *txt_rect, *fcs_rect;
+  fcs_rect = &drawing_data.focus_fields[0];
+  switch (main_get_timer_mode()) {
+    case TimerModeEditHr:
+      txt_rect = &drawing_data.text_fields[0];
+      break;
+    case TimerModeEditMin:
+      txt_rect = &drawing_data.text_fields[2];
+      break;
+    case TimerModeEditSec:
+      txt_rect = &drawing_data.text_fields[4];
+      break;
+    default:
+      return;
+  }
+  // animate text
+  GRect rect_to = (*txt_rect);
+  rect_to.origin.y = drawing_data.text_fields[1].origin.y;
+  rect_to.origin.y += (upward ? -1 : 1) * FOCUS_BOUNCE_ANI_HEIGHT;
+  animation_grect_start(txt_rect, rect_to, FOCUS_BOUNCE_ANI_DURATION, 0);
+  rect_to.origin.y = drawing_data.text_fields[1].origin.y;
+  animation_grect_start(txt_rect, rect_to, FOCUS_BOUNCE_ANI_SETTLE_DURATION,
+    FOCUS_BOUNCE_ANI_DURATION);
+  // animate focus layer
+  rect_to = (*fcs_rect);
+  rect_to.origin.y = drawing_data.focus_fields[1].origin.y;
+  rect_to.origin.y += (upward ? -1 : 1) * FOCUS_BOUNCE_ANI_HEIGHT;
+  animation_grect_start(fcs_rect, rect_to, FOCUS_BOUNCE_ANI_DURATION, FOCUS_BOUNCE_ANI_DURATION);
+  rect_to.origin.y = drawing_data.focus_fields[1].origin.y;
+  animation_grect_start(fcs_rect, rect_to, FOCUS_BOUNCE_ANI_SETTLE_DURATION,
+    FOCUS_BOUNCE_ANI_DURATION * 2);
+}
 
 // Update the progress ring angle based on the timer values
 void drawing_update_progress_ring_angle(void) {
