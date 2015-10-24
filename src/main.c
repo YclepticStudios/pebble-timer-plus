@@ -22,8 +22,11 @@ static struct {
   int64_t   timer_length; //< The total duration of the timer in milliseconds
 
   TimerMode timer_mode;   //< The current control mode of the timer
+  AppTimer  *app_timer;   //< The AppTimer to keep the screen refreshing
 } main_data;
 
+// Function declarations
+static void prv_app_timer_callback(void *data);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Callbacks
@@ -102,10 +105,24 @@ static void prv_up_click_handler(ClickRecognizerRef recognizer, void *ctx) {
 // Select click handler
 static void prv_select_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   // change timer mode
-  if (main_data.timer_mode == TimerModeCounting) {
-    main_data.timer_mode = TimerModeEditSec;
-  } else {
-    main_data.timer_mode++;
+  switch (main_data.timer_mode) {
+    case TimerModeCounting:
+      main_data.timer_mode = TimerModeEditSec;
+      main_data.timer_start -= epoch();
+      break;
+    case TimerModeEditHr:
+      main_data.timer_mode = TimerModeEditMin;
+      break;
+    case TimerModeEditMin:
+      main_data.timer_mode = TimerModeEditSec;
+      break;
+    case TimerModeEditSec:
+      main_data.timer_mode = TimerModeCounting;
+      main_data.timer_start += epoch();
+      if (!main_data.app_timer) {
+        prv_app_timer_callback(NULL);
+      }
+      break;
   }
   // refresh
   layer_mark_dirty(main_data.layer);
@@ -151,6 +168,19 @@ static void prv_click_config_provider(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_DOWN, prv_down_click_handler);
 }
 
+// AppTimer callback
+static void prv_app_timer_callback(void *data) {
+  // refresh
+  layer_mark_dirty(main_data.layer);
+  drawing_update_progress_ring_angle();
+  // schedule next call
+  main_data.app_timer = NULL;
+  if (main_data.timer_mode == TimerModeCounting) {
+    uint32_t duration = main_get_timer_value() % MSEC_IN_SEC + 1;
+    main_data.app_timer = app_timer_register(duration, prv_app_timer_callback, NULL);
+  }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Loading and Unloading
@@ -178,11 +208,13 @@ static void prv_initialize(void) {
   // set dummy timer values
   main_data.timer_start = 0;
   main_data.timer_length = 300000;
-  main_data.timer_mode = TimerModeCounting;
+  main_data.timer_mode = TimerModeEditMin;
   drawing_update_progress_ring_angle();
 
   // initialize drawing singleton
   drawing_initialize(main_data.layer);
+  // start refreshing
+  prv_app_timer_callback(NULL);
 }
 
 // Terminate the program
