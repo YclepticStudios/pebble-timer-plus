@@ -14,6 +14,7 @@
 #include "utility.h"
 
 // Drawing constants
+// Progress ring
 #define CIRCLE_RADIUS 60
 #define ANGLE_CHANGE_ANI_THRESHOLD 348
 #define PROGRESS_ANI_DURATION 500
@@ -23,16 +24,20 @@
 #define MAIN_TEXT_CIRCLE_RADIUS_EDIT (CIRCLE_RADIUS - 15)
 #define MAIN_TEXT_BOUNDS_EDIT GRect(-MAIN_TEXT_CIRCLE_RADIUS_EDIT, \
  -MAIN_TEXT_CIRCLE_RADIUS_EDIT / 2, MAIN_TEXT_CIRCLE_RADIUS_EDIT * 2, MAIN_TEXT_CIRCLE_RADIUS_EDIT)
+// Main Text
 #define TEXT_FIELD_COUNT 5
 #define TEXT_FIELD_EDIT_SPACING 7
 #define TEXT_FIELD_ANI_DURATION 250
+// Focus Layer
 #define FOCUS_FIELD_COUNT 2
 #define FOCUS_FIELD_BORDER 5
-#define FOCUS_FIELD_PAUSE_RADIUS CIRCLE_RADIUS / 2
+#define FOCUS_FIELD_PAUSE_RADIUS (CIRCLE_RADIUS / 2 - 3)
 #define FOCUS_FIELD_ANI_DURATION 150
 #define FOCUS_BOUNCE_ANI_HEIGHT 6
 #define FOCUS_BOUNCE_ANI_DURATION 107
 #define FOCUS_BOUNCE_ANI_SETTLE_DURATION 214
+// Header Text
+#define HEADER_Y_OFFSET 5
 
 // Main drawing state description
 typedef struct {
@@ -106,6 +111,30 @@ static void prv_render_focus_layer(GContext *ctx, GRect bounds) {
   graphics_context_set_fill_color(ctx, drawing_data.ring_color);
   graphics_fill_rect(ctx, drawing_data.focus_fields[0], 0, GCornerNone);
   graphics_fill_rect(ctx, drawing_data.focus_fields[1], 0, GCornerNone);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Sub Texts
+//
+
+// Draw header text
+static void prv_render_header_text(GContext *ctx, GRect bounds) {
+  // calculate bounds
+  bounds.origin = grect_center_point(&bounds);
+  bounds.origin.x -= CIRCLE_RADIUS;
+  bounds.origin.y -= (CIRCLE_RADIUS - HEADER_Y_OFFSET);
+  bounds.size.w = CIRCLE_RADIUS * 2;
+  bounds.size.h = CIRCLE_RADIUS / 2;
+  // draw text
+  char *buff;
+  if (main_is_stopwatch_mode()) {
+    buff = "Chono";
+  } else {
+    buff = "Timer";
+  }
+  graphics_draw_text(ctx, buff, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), bounds,
+    GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 }
 
 
@@ -350,6 +379,9 @@ void drawing_render(Layer *layer, GContext *ctx) {
   graphics_context_set_stroke_color(ctx, drawing_data.fore_color);
   graphics_context_set_fill_color(ctx, drawing_data.fore_color);
   prv_render_main_text(ctx, bounds);
+  // draw header text
+  graphics_context_set_text_color(ctx, drawing_data.fore_color);
+  prv_render_header_text(ctx, bounds);
 }
 
 // Initialize the singleton drawing data
