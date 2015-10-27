@@ -16,7 +16,7 @@
 // Drawing constants
 #define CIRCLE_RADIUS 60
 #define ANGLE_CHANGE_ANI_THRESHOLD 348
-#define PROGRESS_ANI_DURATION 750
+#define PROGRESS_ANI_DURATION 500
 #define MAIN_TEXT_CIRCLE_RADIUS (CIRCLE_RADIUS - 7)
 #define MAIN_TEXT_BOUNDS GRect(-MAIN_TEXT_CIRCLE_RADIUS, -MAIN_TEXT_CIRCLE_RADIUS / 2,\
  MAIN_TEXT_CIRCLE_RADIUS * 2, MAIN_TEXT_CIRCLE_RADIUS)
@@ -53,8 +53,6 @@ static struct {
   GColor      ring_color;         //< Color of ring
   GColor      back_color;         //< Color behind ring
 } drawing_data;
-
-// Focus layer data
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -227,6 +225,9 @@ static void prv_render_progress_ring(GContext *ctx, GRect bounds) {
 static void prv_progress_ring_update(void) {
   // calculate new angle
   int32_t new_angle = TRIG_MAX_ANGLE * main_get_timer_value() / main_get_timer_length();
+  if (main_is_stopwatch_mode()) {
+    new_angle = TRIG_MAX_ANGLE * (main_get_timer_value() % MSEC_IN_MIN) / MSEC_IN_MIN;
+  }
   // check if large angle and animate
   animation_stop(&drawing_data.progress_angle);
   if (abs(new_angle - drawing_data.progress_angle) >= ANGLE_CHANGE_ANI_THRESHOLD) {
@@ -243,9 +244,17 @@ static void prv_progress_ring_update(void) {
 
 // Compare two different TextStates, return true if same
 static bool prv_text_state_compare(DrawState text_state_1, DrawState text_state_2) {
-  return text_state_1.timer_mode == text_state_2.timer_mode &&
-         text_state_1.hr_digits == text_state_2.hr_digits &&
-         text_state_1.min_digits == text_state_2.min_digits;
+  if (text_state_1.timer_mode != text_state_2.timer_mode) {
+    return false;
+  } else if (text_state_1.timer_mode == TimerModeCounting &&
+             (text_state_1.hr_digits != text_state_2.hr_digits ||
+             text_state_1.min_digits != text_state_2.min_digits)) {
+    return false;
+  } else if ((text_state_1.hr_digits == 0 && text_state_2.hr_digits != 0) ||
+             (text_state_1.hr_digits != 0 && text_state_2.hr_digits == 0)) {
+    return false;
+  }
+  return true;
 }
 
 // Create a state description
@@ -254,8 +263,8 @@ static DrawState prv_draw_state_create(TimerMode timer_mode, int64_t timer_curre
   uint8_t minutes = timer_current % MSEC_IN_HR / MSEC_IN_MIN;
   return (DrawState) {
     .timer_mode = timer_mode,
-    .hr_digits = (hours + 9) / 10,
-    .min_digits = (minutes + 9) / 10,
+    .hr_digits = (uint8_t)(hours > 0) + (uint8_t)(hours > 9),
+    .min_digits = (uint8_t)(minutes > 0) + (uint8_t)(minutes > 9),
   };
 }
 

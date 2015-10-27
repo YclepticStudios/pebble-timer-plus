@@ -29,6 +29,10 @@ int64_t main_get_timer_value(void);
 //! @return The total timer duration in milliseconds
 int64_t main_get_timer_length(void);
 
+//! Get whether it is in stopwatch mode
+//! @return True if in stopwatch mode, else false
+bool main_is_stopwatch_mode(void);
+
 //! Get the current control mode of the timer
 //! @return The current TimerMode control mode of the timer
 TimerMode main_get_timer_mode(void);
