@@ -11,6 +11,7 @@
 #include "animation.h"
 #include "main.h"
 #include "text_render.h"
+#include "timer.h"
 #include "utility.h"
 
 // Drawing constants
@@ -39,11 +40,11 @@
 // Header Text
 #define HEADER_Y_OFFSET 5
 
-// Main drawing state description
+// Main drawing state description, used to determine changes in state
 typedef struct {
-  TimerMode   timer_mode;   //< The timer control mode at that state
-  uint8_t     hr_digits;    //< The number of digits used by the hours
-  uint8_t     min_digits;   //< The number of digits used by the minutes
+  ControlMode   control_mode;   //< The timer control mode at that state
+  uint8_t       hr_digits;      //< The number of digits used by the hours
+  uint8_t       min_digits;     //< The number of digits used by the minutes
 } DrawState;
 
 // Main data
@@ -69,45 +70,38 @@ static void prv_focus_layer_update_state(Layer *layer, GRect hr_bounds, GRect mi
                                          GRect sec_bounds) {
   // get properties
   GRect bounds = layer_get_bounds(layer);
-  GRect pause_bounds;
   // check current control mode
-  if (main_get_timer_mode() == TimerModeCounting) {
+  if (main_get_control_mode() == ControlModeCounting) {
     // calculate the size of the pause icon
-    pause_bounds.origin = grect_center_point(&bounds);
-    pause_bounds.origin.x -= FOCUS_FIELD_PAUSE_RADIUS;
-    pause_bounds.origin.y -= FOCUS_FIELD_PAUSE_RADIUS;
-    pause_bounds.size.w = FOCUS_FIELD_PAUSE_RADIUS * 2 / 3;
-    pause_bounds.size.h = FOCUS_FIELD_PAUSE_RADIUS * 2;
+    bounds.origin = grect_center_point(&bounds);
+    bounds.origin.x -= FOCUS_FIELD_PAUSE_RADIUS;
+    bounds.origin.y -= FOCUS_FIELD_PAUSE_RADIUS;
+    bounds.size.w = FOCUS_FIELD_PAUSE_RADIUS * 2 / 3;
+    bounds.size.h = FOCUS_FIELD_PAUSE_RADIUS * 2;
     // animate first focus rectangle
-    animation_grect_start(&drawing_data.focus_fields[0], pause_bounds, FOCUS_FIELD_ANI_DURATION, 0);
+    animation_grect_start(&drawing_data.focus_fields[0], bounds, FOCUS_FIELD_ANI_DURATION, 0);
     // shift grect for rightmost part of pause symbol
-    pause_bounds.origin.x += FOCUS_FIELD_PAUSE_RADIUS * 4 / 3;
-    animation_grect_start(&drawing_data.focus_fields[1], pause_bounds, FOCUS_FIELD_ANI_DURATION, 0);
+    bounds.origin.x += FOCUS_FIELD_PAUSE_RADIUS * 4 / 3;
+    animation_grect_start(&drawing_data.focus_fields[1], bounds, FOCUS_FIELD_ANI_DURATION, 0);
   } else {
-    // get final grect
-    switch (main_get_timer_mode()) {
-      case TimerModeEditHr:
-        pause_bounds = hr_bounds;
-        break;
-      case TimerModeEditMin:
-        pause_bounds = min_bounds;
-        break;
-      case TimerModeEditSec:
-        pause_bounds = sec_bounds;
-        break;
-      default:
-        return;
+    // get final bounds when in editing mode
+    if (main_get_control_mode() == ControlModeEditHr) {
+      bounds = hr_bounds;
+    } else if (main_get_control_mode() == ControlModeEditMin) {
+      bounds = min_bounds;
+    } else {
+      bounds = sec_bounds;
     }
     // add border
-    pause_bounds = grect_inset(pause_bounds, GEdgeInsets1(-FOCUS_FIELD_BORDER));
+    bounds = grect_inset(bounds, GEdgeInsets1(-FOCUS_FIELD_BORDER));
     // animate the focus field to those bounds
-    animation_grect_start(&drawing_data.focus_fields[0], pause_bounds, FOCUS_FIELD_ANI_DURATION, 0);
-    animation_grect_start(&drawing_data.focus_fields[1], pause_bounds, FOCUS_FIELD_ANI_DURATION, 0);
+    animation_grect_start(&drawing_data.focus_fields[0], bounds, FOCUS_FIELD_ANI_DURATION, 0);
+    animation_grect_start(&drawing_data.focus_fields[1], bounds, FOCUS_FIELD_ANI_DURATION, 0);
   }
 }
 
 // Draw the focus layer
-static void prv_render_focus_layer(GContext *ctx, GRect bounds) {
+static void prv_render_focus_layer(GContext *ctx) {
   graphics_context_set_fill_color(ctx, drawing_data.ring_color);
   graphics_fill_rect(ctx, drawing_data.focus_fields[0], 0, GCornerNone);
   graphics_fill_rect(ctx, drawing_data.focus_fields[1], 0, GCornerNone);
@@ -128,7 +122,7 @@ static void prv_render_header_text(GContext *ctx, GRect bounds) {
   bounds.size.h = CIRCLE_RADIUS / 2;
   // draw text
   char *buff;
-  if (main_is_stopwatch_mode()) {
+  if (timer_is_chrono()) {
     buff = "Chono";
   } else {
     buff = "Timer";
@@ -146,29 +140,24 @@ static void prv_render_header_text(GContext *ctx, GRect bounds) {
 static void prv_main_text_update_state(Layer *layer) {
   // get properties
   GRect bounds = layer_get_bounds(layer);
-  bool edit_mode = main_get_timer_mode() != TimerModeCounting;
+  bool edit_mode = main_get_control_mode() != ControlModeCounting;
   // calculate time parts
-  int64_t timer_value = main_get_timer_value();
-  int hr = timer_value / MSEC_IN_HR;
-  int min = timer_value % MSEC_IN_HR / MSEC_IN_MIN;
-  int sec = timer_value % MSEC_IN_MIN / MSEC_IN_SEC;
+  uint16_t hr, min, sec;
+  timer_get_time_parts(&hr, &min, &sec);
   // convert to strings
-  char buff[TEXT_FIELD_COUNT][4];
-  bool edit = main_get_timer_mode() != TimerModeCounting;
+  char buff[TEXT_FIELD_COUNT][4] = {{'\0'}};
   if (hr) {
-    snprintf(buff[0], sizeof(buff[0]), edit ? "%02d" : "%d", hr);
-  } else {
-    snprintf(buff[0], sizeof(buff[0]), "%s", "\0");
+    snprintf(buff[0], sizeof(buff[0]), edit_mode ? "%02d" : "%d", hr);
   }
-  snprintf(buff[1], sizeof(buff[1]), "%s", hr && !edit ? ":" : "\0");
-  snprintf(buff[2], sizeof(buff[2]), (hr || edit) ? "%02d" : "%d", min);
-  snprintf(buff[3], sizeof(buff[3]), "%s", edit ? "\0" : ":");
+  snprintf(buff[1], sizeof(buff[1]), "%s", hr && !edit_mode ? ":" : "\0");
+  snprintf(buff[2], sizeof(buff[2]), (hr || edit_mode) ? "%02d" : "%d", min);
+  snprintf(buff[3], sizeof(buff[3]), "%s", edit_mode ? "\0" : ":");
   snprintf(buff[4], sizeof(buff[4]), "%02d", sec);
   // calculate new sizes for all text elements
   char tot_buff[8];
   snprintf(tot_buff, sizeof(tot_buff), "%s%s%s%s%s", buff[0], buff[1], buff[2], buff[3], buff[4]);
   uint16_t font_size = text_render_get_max_font_size(tot_buff, edit_mode ? MAIN_TEXT_BOUNDS_EDIT :
-                                                               MAIN_TEXT_BOUNDS);
+    MAIN_TEXT_BOUNDS);
   // calculate new size for each text element
   GRect total_bounds = GRectZero;
   GRect field_bounds[TEXT_FIELD_COUNT];
@@ -201,22 +190,18 @@ static void prv_main_text_update_state(Layer *layer) {
 
 // Draw main text onto drawing context
 static void prv_render_main_text(GContext *ctx, GRect bounds) {
-  // calculate time parts
-  int64_t timer_value = main_get_timer_value();
-  int hr = timer_value / MSEC_IN_HR;
-  int min = timer_value % MSEC_IN_HR / MSEC_IN_MIN;
-  int sec = timer_value % MSEC_IN_MIN / MSEC_IN_SEC;
+  // get time parts
+  uint16_t hr, min, sec;
+  timer_get_time_parts(&hr, &min, &sec);
   // convert to strings
-  char buff[TEXT_FIELD_COUNT][4];
-  bool edit = main_get_timer_mode() != TimerModeCounting;
+  bool edit_mode = main_get_control_mode() != ControlModeCounting;
+  char buff[TEXT_FIELD_COUNT][4] = {{'\0'}};
   if (hr) {
-    snprintf(buff[0], sizeof(buff[0]), edit ? "%02d" : "%d", hr);
-  } else {
-    snprintf(buff[0], sizeof(buff[0]), "%s", "\0");
+    snprintf(buff[0], sizeof(buff[0]), edit_mode ? "%02d" : "%d", hr);
   }
-  snprintf(buff[1], sizeof(buff[1]), "%s", hr && !edit ? ":" : "\0");
-  snprintf(buff[2], sizeof(buff[2]), (hr || edit) ? "%02d" : "%d", min);
-  snprintf(buff[3], sizeof(buff[3]), "%s", edit ? "\0" : ":");
+  snprintf(buff[1], sizeof(buff[1]), "%s", hr && !edit_mode ? ":" : "\0");
+  snprintf(buff[2], sizeof(buff[2]), (hr || edit_mode) ? "%02d" : "%d", min);
+  snprintf(buff[3], sizeof(buff[3]), "%s", edit_mode ? "\0" : ":");
   snprintf(buff[4], sizeof(buff[4]), "%02d", sec);
   // draw the main text elements in their respective bounds
   for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
@@ -253,9 +238,9 @@ static void prv_render_progress_ring(GContext *ctx, GRect bounds) {
 // Update the progress ring position based on the current and total values
 static void prv_progress_ring_update(void) {
   // calculate new angle
-  int32_t new_angle = TRIG_MAX_ANGLE * main_get_timer_value() / main_get_timer_length();
-  if (main_is_stopwatch_mode()) {
-    new_angle = TRIG_MAX_ANGLE * (main_get_timer_value() % MSEC_IN_MIN) / MSEC_IN_MIN;
+  int32_t new_angle = TRIG_MAX_ANGLE * timer_get_value_ms() / timer_get_length_ms();
+  if (timer_is_chrono()) {
+    new_angle = TRIG_MAX_ANGLE * (timer_get_value_ms() % MSEC_IN_MIN) / MSEC_IN_MIN;
   }
   // check if large angle and animate
   animation_stop(&drawing_data.progress_angle);
@@ -273,9 +258,9 @@ static void prv_progress_ring_update(void) {
 
 // Compare two different TextStates, return true if same
 static bool prv_text_state_compare(DrawState text_state_1, DrawState text_state_2) {
-  if (text_state_1.timer_mode != text_state_2.timer_mode) {
+  if (text_state_1.control_mode != text_state_2.control_mode) {
     return false;
-  } else if (text_state_1.timer_mode == TimerModeCounting &&
+  } else if (text_state_1.control_mode == ControlModeCounting &&
              (text_state_1.hr_digits != text_state_2.hr_digits ||
              text_state_1.min_digits != text_state_2.min_digits)) {
     return false;
@@ -287,25 +272,24 @@ static bool prv_text_state_compare(DrawState text_state_1, DrawState text_state_
 }
 
 // Create a state description
-static DrawState prv_draw_state_create(TimerMode timer_mode, int64_t timer_current) {
-  uint8_t hours = timer_current / MSEC_IN_HR;
-  uint8_t minutes = timer_current % MSEC_IN_HR / MSEC_IN_MIN;
+static DrawState prv_draw_state_create(void) {
+  // get states
+  uint16_t hr, min, sec;
+  timer_get_time_parts(&hr, &min, &sec);
   return (DrawState) {
-    .timer_mode = timer_mode,
-    .hr_digits = (uint8_t)(hours > 0) + (uint8_t)(hours > 9),
-    .min_digits = (uint8_t)(minutes > 0) + (uint8_t)(minutes > 9),
+    .control_mode = main_get_control_mode(),
+    .hr_digits = (uint8_t)(hr > 0) + (uint8_t)(hr > 9) + (uint8_t)(hr > 99),
+    .min_digits = (uint8_t)(min > 0) + (uint8_t)(min > 9),
   };
 }
 
 // Check for draw state changes and update drawing accordingly
 static void prv_update_draw_state(Layer *layer) {
   // check for changes in the states of things
-  DrawState cur_text_state = prv_draw_state_create(main_get_timer_mode(), main_get_timer_value());
-  if (!prv_text_state_compare(cur_text_state, drawing_data.draw_state)) {
-    // set the old state to the new one
-    drawing_data.draw_state = cur_text_state;
-    // update drawing functions
-    // focus update called in main text update
+  DrawState cur_draw_state = prv_draw_state_create();
+  if (!prv_text_state_compare(cur_draw_state, drawing_data.draw_state)) {
+    drawing_data.draw_state = cur_draw_state;
+    // update text state
     prv_main_text_update_state(layer);
   }
 }
@@ -317,23 +301,16 @@ static void prv_update_draw_state(Layer *layer) {
 
 // Create bounce animation for focus layer
 void drawing_start_bounce_animation(bool upward) {
-  // TODO: Make this section cleaner
   // get the currently selected elements
   // only animate the position of one focus layer, stacking gives appearance of stretching
   GRect *txt_rect, *fcs_rect;
   fcs_rect = &drawing_data.focus_fields[0];
-  switch (main_get_timer_mode()) {
-    case TimerModeEditHr:
-      txt_rect = &drawing_data.text_fields[0];
-      break;
-    case TimerModeEditMin:
-      txt_rect = &drawing_data.text_fields[2];
-      break;
-    case TimerModeEditSec:
-      txt_rect = &drawing_data.text_fields[4];
-      break;
-    default:
-      return;
+  if (main_get_control_mode() == ControlModeEditHr) {
+    txt_rect = &drawing_data.text_fields[0];
+  } else if (main_get_control_mode() == ControlModeEditMin) {
+    txt_rect = &drawing_data.text_fields[2];
+  } else {
+    txt_rect = &drawing_data.text_fields[4];
   }
   // animate text
   GRect rect_to = (*txt_rect);
@@ -353,16 +330,12 @@ void drawing_start_bounce_animation(bool upward) {
     FOCUS_BOUNCE_ANI_DURATION * 2);
 }
 
-// Update the progress ring angle based on the timer values
-void drawing_update_progress_ring_angle(void) {
-  prv_progress_ring_update();
-}
+
+//! Create reset animation for focus layer
+void drawing_start_reset_animation(void);
 
 // Render everything to the screen
 void drawing_render(Layer *layer, GContext *ctx) {
-  // check for drawing state changes
-  prv_update_draw_state(layer);
-
   // get properties
   GRect bounds = layer_get_bounds(layer);
   // draw background
@@ -374,7 +347,7 @@ void drawing_render(Layer *layer, GContext *ctx) {
   graphics_context_set_fill_color(ctx, drawing_data.mid_color);
   graphics_fill_circle(ctx, grect_center_point(&bounds), CIRCLE_RADIUS);
   // draw focus layer
-  prv_render_focus_layer(ctx, bounds);
+  prv_render_focus_layer(ctx);
   // draw main text (drawn as filled and stroked path)
   graphics_context_set_stroke_color(ctx, drawing_data.fore_color);
   graphics_context_set_fill_color(ctx, drawing_data.fore_color);
@@ -382,6 +355,14 @@ void drawing_render(Layer *layer, GContext *ctx) {
   // draw header text
   graphics_context_set_text_color(ctx, drawing_data.fore_color);
   prv_render_header_text(ctx, bounds);
+}
+
+// Update the drawing states and recalculate everythings positions
+void drawing_update(void) {
+  // check for drawing state changes
+  prv_update_draw_state(drawing_data.layer);
+  // update progress ring angle
+  prv_progress_ring_update();
 }
 
 // Initialize the singleton drawing data
@@ -400,6 +381,10 @@ void drawing_initialize(Layer *layer) {
     drawing_data.focus_fields[ii].origin = grect_center_point(&bounds);
     drawing_data.focus_fields[ii].size = GSizeZero;
   }
+  // set initial draw state to something which guaranties a refresh
+  drawing_data.draw_state = (DrawState) {
+    .hr_digits = 99,
+  };
   // set the colors
   drawing_data.fore_color = GColorBlack;
   drawing_data.mid_color = PBL_IF_COLOR_ELSE(GColorPastelYellow, GColorWhite);

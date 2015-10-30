@@ -14,13 +14,16 @@
 //! @param upward Animate the bounce upward or downward
 void drawing_start_bounce_animation(bool upward);
 
-//! Update the progress ring angle based on the timer values
-void drawing_update_progress_ring_angle(void);
+//! Create reset animation for focus layer
+void drawing_start_reset_animation(void);
 
 //! Render everything to the screen
 //! @param layer The layer being rendered onto
 //! @param ctx The layer's drawing context
 void drawing_render(Layer *layer, GContext *ctx);
+
+//! Update the drawing states and recalculate everythings positions
+void drawing_update(void);
 
 //! Initialize the singleton drawing data
 //! @param layer The layer which the drawing code can force to refresh, for animations
