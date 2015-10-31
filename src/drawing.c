@@ -18,7 +18,7 @@
 // Progress ring
 #define CIRCLE_RADIUS 60
 #define ANGLE_CHANGE_ANI_THRESHOLD 348
-#define PROGRESS_ANI_DURATION 500
+#define PROGRESS_ANI_DURATION 300
 #define MAIN_TEXT_CIRCLE_RADIUS (CIRCLE_RADIUS - 7)
 #define MAIN_TEXT_BOUNDS GRect(-MAIN_TEXT_CIRCLE_RADIUS, -MAIN_TEXT_CIRCLE_RADIUS / 2,\
  MAIN_TEXT_CIRCLE_RADIUS * 2, MAIN_TEXT_CIRCLE_RADIUS)
@@ -33,6 +33,7 @@
 #define FOCUS_FIELD_COUNT 2
 #define FOCUS_FIELD_BORDER 5
 #define FOCUS_FIELD_PAUSE_RADIUS (CIRCLE_RADIUS / 2 - 3)
+#define FOCUS_FIELD_SHRINK_INSET 3
 #define FOCUS_FIELD_ANI_DURATION 150
 #define FOCUS_BOUNCE_ANI_HEIGHT 6
 #define FOCUS_BOUNCE_ANI_DURATION 107
@@ -330,6 +331,18 @@ void drawing_start_bounce_animation(bool upward) {
     FOCUS_BOUNCE_ANI_DURATION * 2);
 }
 
+// Create reset animation for focus layer
+void drawing_start_reset_animation(void) {
+  // create shrunken focus bounds and animate to new bounds
+  GRect focus_to_bounds[FOCUS_FIELD_COUNT];
+  for (uint8_t ii = 0; ii < FOCUS_FIELD_COUNT; ii++) {
+    focus_to_bounds[ii] = grect_inset(drawing_data.focus_fields[ii],
+      GEdgeInsets1(FOCUS_FIELD_SHRINK_INSET));
+    animation_grect_start(&drawing_data.focus_fields[ii], focus_to_bounds[ii],
+      FOCUS_FIELD_ANI_DURATION, 0);
+  }
+}
+
 // Render everything to the screen
 void drawing_render(Layer *layer, GContext *ctx) {
   // get properties
@@ -355,7 +368,7 @@ void drawing_render(Layer *layer, GContext *ctx) {
 
 // Update the drawing states and recalculate everythings positions
 void drawing_update(void) {
-  // check for drawing state changes
+  // update drawing state
   prv_update_draw_state(drawing_data.layer);
   // update progress ring angle
   prv_progress_ring_update();

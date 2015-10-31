@@ -115,6 +115,23 @@ static void prv_select_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   layer_mark_dirty(main_data.layer);
 }
 
+// Select raw click handler
+static void prv_select_raw_click_handler(ClickRecognizerRef recognizer, void *ctx) {
+  // animate and refresh
+  drawing_start_reset_animation();
+  // drawing_update();
+  layer_mark_dirty(main_data.layer);
+}
+
+// Select long click handler
+static void prv_select_long_click_handler(ClickRecognizerRef recognizer, void *ctx) {
+  main_data.control_mode = ControlModeEditMin;
+  timer_reset();
+  // animate and refresh
+  drawing_update();
+  layer_mark_dirty(main_data.layer);
+}
+
 // Down click handler
 static void prv_down_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   if (main_data.control_mode == ControlModeCounting) {
@@ -144,6 +161,8 @@ static void prv_click_config_provider(void *ctx) {
   window_single_repeating_click_subscribe(BUTTON_ID_UP, BUTTON_HOLD_REPEAT_MS,
     prv_up_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click_handler);
+  window_raw_click_subscribe(BUTTON_ID_SELECT, prv_select_raw_click_handler, NULL, NULL);
+  window_long_click_subscribe(BUTTON_ID_SELECT, 1000, prv_select_long_click_handler, NULL);
   window_single_repeating_click_subscribe(BUTTON_ID_DOWN, BUTTON_HOLD_REPEAT_MS,
     prv_down_click_handler);
 }
