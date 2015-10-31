@@ -28,16 +28,17 @@
 // Main Text
 #define TEXT_FIELD_COUNT 5
 #define TEXT_FIELD_EDIT_SPACING 7
-#define TEXT_FIELD_ANI_DURATION 250
+#define TEXT_FIELD_ANI_DURATION 140
 // Focus Layer
 #define FOCUS_FIELD_COUNT 2
 #define FOCUS_FIELD_BORDER 5
 #define FOCUS_FIELD_PAUSE_RADIUS (CIRCLE_RADIUS / 2 - 3)
 #define FOCUS_FIELD_SHRINK_INSET 3
+#define FOCUS_FIELD_SHRINK_DURATION 80
 #define FOCUS_FIELD_ANI_DURATION 150
-#define FOCUS_BOUNCE_ANI_HEIGHT 6
-#define FOCUS_BOUNCE_ANI_DURATION 107
-#define FOCUS_BOUNCE_ANI_SETTLE_DURATION 214
+#define FOCUS_BOUNCE_ANI_HEIGHT 8
+#define FOCUS_BOUNCE_ANI_DURATION 70
+#define FOCUS_BOUNCE_ANI_SETTLE_DURATION 140
 // Header Text
 #define HEADER_Y_OFFSET 5
 
@@ -80,10 +81,12 @@ static void prv_focus_layer_update_state(Layer *layer, GRect hr_bounds, GRect mi
     bounds.size.w = FOCUS_FIELD_PAUSE_RADIUS * 2 / 3;
     bounds.size.h = FOCUS_FIELD_PAUSE_RADIUS * 2;
     // animate first focus rectangle
-    animation_grect_start(&drawing_data.focus_fields[0], bounds, FOCUS_FIELD_ANI_DURATION, 0);
+    animation_grect_start(&drawing_data.focus_fields[0], bounds, FOCUS_FIELD_ANI_DURATION, 0,
+      CurveSinEaseOut);
     // shift grect for rightmost part of pause symbol
     bounds.origin.x += FOCUS_FIELD_PAUSE_RADIUS * 4 / 3;
-    animation_grect_start(&drawing_data.focus_fields[1], bounds, FOCUS_FIELD_ANI_DURATION, 0);
+    animation_grect_start(&drawing_data.focus_fields[1], bounds, FOCUS_FIELD_ANI_DURATION, 0,
+      CurveSinEaseOut);
   } else {
     // get final bounds when in editing mode
     if (main_get_control_mode() == ControlModeEditHr) {
@@ -96,8 +99,10 @@ static void prv_focus_layer_update_state(Layer *layer, GRect hr_bounds, GRect mi
     // add border
     bounds = grect_inset(bounds, GEdgeInsets1(-FOCUS_FIELD_BORDER));
     // animate the focus field to those bounds
-    animation_grect_start(&drawing_data.focus_fields[0], bounds, FOCUS_FIELD_ANI_DURATION, 0);
-    animation_grect_start(&drawing_data.focus_fields[1], bounds, FOCUS_FIELD_ANI_DURATION, 0);
+    animation_grect_start(&drawing_data.focus_fields[0], bounds, FOCUS_FIELD_ANI_DURATION, 0,
+      CurveSinEaseOut);
+    animation_grect_start(&drawing_data.focus_fields[1], bounds, FOCUS_FIELD_ANI_DURATION, 0,
+      CurveSinEaseOut);
   }
 }
 
@@ -124,7 +129,7 @@ static void prv_render_header_text(GContext *ctx, GRect bounds) {
   // draw text
   char *buff;
   if (timer_is_chrono()) {
-    buff = "Chono";
+    buff = "Chrono";
   } else {
     buff = "Timer";
   }
@@ -182,7 +187,7 @@ static void prv_main_text_update_state(Layer *layer) {
   // animate to new positions
   for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
     animation_grect_start(&drawing_data.text_fields[ii], field_bounds[ii],
-                          TEXT_FIELD_ANI_DURATION, 0);
+      TEXT_FIELD_ANI_DURATION, 0, CurveSinEaseInOut);
   }
 
   // update the focus layers
@@ -246,7 +251,8 @@ static void prv_progress_ring_update(void) {
   // check if large angle and animate
   animation_stop(&drawing_data.progress_angle);
   if (abs(new_angle - drawing_data.progress_angle) >= ANGLE_CHANGE_ANI_THRESHOLD) {
-    animation_int32_start(&drawing_data.progress_angle, new_angle, PROGRESS_ANI_DURATION, 0);
+    animation_int32_start(&drawing_data.progress_angle, new_angle, PROGRESS_ANI_DURATION, 0,
+      CurveSinEaseOut);
   } else {
     drawing_data.progress_angle = new_angle;
   }
@@ -317,18 +323,19 @@ void drawing_start_bounce_animation(bool upward) {
   GRect rect_to = (*txt_rect);
   rect_to.origin.y = drawing_data.text_fields[1].origin.y;
   rect_to.origin.y += (upward ? -1 : 1) * FOCUS_BOUNCE_ANI_HEIGHT;
-  animation_grect_start(txt_rect, rect_to, FOCUS_BOUNCE_ANI_DURATION, 0);
+  animation_grect_start(txt_rect, rect_to, FOCUS_BOUNCE_ANI_DURATION, 0, CurveSinEaseIn);
   rect_to.origin.y = drawing_data.text_fields[1].origin.y;
   animation_grect_start(txt_rect, rect_to, FOCUS_BOUNCE_ANI_SETTLE_DURATION,
-    FOCUS_BOUNCE_ANI_DURATION);
+    FOCUS_BOUNCE_ANI_DURATION, CurveSinEaseOut);
   // animate focus layer
   rect_to = (*fcs_rect);
   rect_to.origin.y = drawing_data.focus_fields[1].origin.y;
   rect_to.origin.y += (upward ? -1 : 1) * FOCUS_BOUNCE_ANI_HEIGHT;
-  animation_grect_start(fcs_rect, rect_to, FOCUS_BOUNCE_ANI_DURATION, FOCUS_BOUNCE_ANI_DURATION);
+  animation_grect_start(fcs_rect, rect_to, FOCUS_BOUNCE_ANI_DURATION, FOCUS_BOUNCE_ANI_DURATION,
+    CurveSinEaseIn);
   rect_to.origin.y = drawing_data.focus_fields[1].origin.y;
   animation_grect_start(fcs_rect, rect_to, FOCUS_BOUNCE_ANI_SETTLE_DURATION,
-    FOCUS_BOUNCE_ANI_DURATION * 2);
+    FOCUS_BOUNCE_ANI_DURATION * 2, CurveSinEaseOut);
 }
 
 // Create reset animation for focus layer
@@ -339,7 +346,7 @@ void drawing_start_reset_animation(void) {
     focus_to_bounds[ii] = grect_inset(drawing_data.focus_fields[ii],
       GEdgeInsets1(FOCUS_FIELD_SHRINK_INSET));
     animation_grect_start(&drawing_data.focus_fields[ii], focus_to_bounds[ii],
-      FOCUS_FIELD_ANI_DURATION, 0);
+      FOCUS_FIELD_SHRINK_DURATION, 0, CurveSinEaseOut);
   }
 }
 

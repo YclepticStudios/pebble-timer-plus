@@ -13,7 +13,7 @@
 #include "utility.h"
 
 // Animation constants
-#define ANIMATION_TICK_INTERVALE 30     //< Number of milliseconds to pause between animation ticks
+#define ANIMATION_TICK_INTERVAL 30      //< Number of milliseconds to pause between animation ticks
 
 // Animation pointer type
 typedef struct AnimationNode {
@@ -24,6 +24,7 @@ typedef struct AnimationNode {
   uint64_t                start_time;         //< Millisecond epoch of when animation was started
   uint32_t                duration;           //< Duration of animation in milliseconds
   uint32_t                delay;              //< Time to wait before animating
+  InterpolationCurve      interpolation;      //< The interpolation mode to use with this animation
   struct AnimationNode    *next;              //< Pointer to next node in linked list
 } AnimationNode;
 
@@ -39,21 +40,6 @@ static void prv_animation_timer_start(void);
 // Private Functions
 //
 
-// Quadratic interpolation in out
-static int32_t prv_curve_quad_ease_in_out(int32_t from, int32_t to, uint32_t percent,
-                                          uint32_t percent_max) {
-  if (percent >= percent_max) {
-    return to;
-  }
-  int32_t t_percent = percent * 100;
-  t_percent /= percent_max / 2;
-  if (t_percent < 100) {
-    return (to - from) / 2 * t_percent * t_percent / 10000 + from;
-  }
-  t_percent -= 100;
-  return -(to - from) / 2 * (t_percent * (t_percent - 200) - 10000) / 10000 + from;
-}
-
 // Step a GRect animation
 static void prv_animation_step_grect(AnimationNode *node) {
   // set from grect on first call, allowing another animation to change the target value
@@ -67,14 +53,14 @@ static void prv_animation_step_grect(AnimationNode *node) {
   GRect to = (*(GRect*)node->to);
   uint32_t percent_max = node->duration;
   uint32_t percent = epoch() - (node->start_time + node->delay);
-  (*(GRect*)node->target).origin.x = prv_curve_quad_ease_in_out(from.origin.x, to.origin.x, percent,
-    percent_max);
-  (*(GRect*)node->target).origin.y = prv_curve_quad_ease_in_out(from.origin.y, to.origin.y, percent,
-    percent_max);
-  (*(GRect*)node->target).size.w = prv_curve_quad_ease_in_out(from.size.w, to.size.w, percent,
-    percent_max);
-  (*(GRect*)node->target).size.h = prv_curve_quad_ease_in_out(from.size.h, to.size.h, percent,
-    percent_max);
+  (*(GRect*)node->target).origin.x = interpolation_integer(from.origin.x, to.origin.x, percent,
+    percent_max, node->interpolation);
+  (*(GRect*)node->target).origin.y = interpolation_integer(from.origin.y, to.origin.y, percent,
+    percent_max, node->interpolation);
+  (*(GRect*)node->target).size.w = interpolation_integer(from.size.w, to.size.w, percent,
+    percent_max, node->interpolation);
+  (*(GRect*)node->target).size.h = interpolation_integer(from.size.h, to.size.h, percent,
+    percent_max, node->interpolation);
   // continue animation
   if (percent >= percent_max) {
     animation_stop(node->target);
@@ -94,7 +80,8 @@ static void prv_animation_step_int32(AnimationNode *node) {
   int32_t to = (*(int32_t*)node->to);
   uint32_t percent_max = node->duration;
   uint32_t percent = epoch() - (node->start_time + node->delay);
-  (*(int32_t*)node->target) = prv_curve_quad_ease_in_out(from, to, percent, percent_max);
+  (*(int32_t*)node->target) = interpolation_integer(from, to, percent, percent_max,
+    node->interpolation);
   // continue animation
   if (percent >= percent_max) {
     animation_stop(node->target);
@@ -138,7 +125,7 @@ static void prv_animation_timer_callback(void *data) {
 // Start animation timer if not running
 static void prv_animation_timer_start(void) {
   if (!ani_timer) {
-    ani_timer = app_timer_register(ANIMATION_TICK_INTERVALE, &prv_animation_timer_callback, NULL);
+    ani_timer = app_timer_register(ANIMATION_TICK_INTERVAL, &prv_animation_timer_callback, NULL);
   }
 }
 
@@ -148,7 +135,8 @@ static void prv_animation_timer_start(void) {
 //
 
 // Animate a GRect by its pointer
-void animation_grect_start(GRect *ptr, GRect to, uint32_t duration, uint32_t delay) {
+void animation_grect_start(GRect *ptr, GRect to, uint32_t duration, uint32_t delay,
+                           InterpolationCurve interpolation) {
   // create and add new node
   AnimationNode *new_node = (AnimationNode*)MALLOC(sizeof(AnimationNode));
   new_node->step_func = &prv_animation_step_grect;
@@ -159,6 +147,7 @@ void animation_grect_start(GRect *ptr, GRect to, uint32_t duration, uint32_t del
   new_node->start_time = epoch();
   new_node->duration = duration;
   new_node->delay = delay;
+  new_node->interpolation = interpolation;
   new_node->next = NULL;
   prv_list_add_node(new_node);
   // start animation timer if not running
@@ -166,7 +155,8 @@ void animation_grect_start(GRect *ptr, GRect to, uint32_t duration, uint32_t del
 }
 
 // Animate an integer by its pointer
-void animation_int32_start(int32_t *ptr, int32_t to, uint32_t duration, uint32_t delay) {
+void animation_int32_start(int32_t *ptr, int32_t to, uint32_t duration, uint32_t delay,
+                           InterpolationCurve interpolation) {
   // create and add new node
   AnimationNode *new_node = (AnimationNode*)MALLOC(sizeof(AnimationNode));
   new_node->step_func = &prv_animation_step_int32;
@@ -177,6 +167,7 @@ void animation_int32_start(int32_t *ptr, int32_t to, uint32_t duration, uint32_t
   new_node->start_time = epoch();
   new_node->duration = duration;
   new_node->delay = delay;
+  new_node->interpolation = interpolation;
   new_node->next = NULL;
   prv_list_add_node(new_node);
   // start animation timer if not running

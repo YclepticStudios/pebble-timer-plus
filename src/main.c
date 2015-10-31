@@ -15,6 +15,7 @@
 
 // Main constants
 #define BUTTON_HOLD_REPEAT_MS 100
+#define BUTTON_HOLD_RESET_MS 750
 
 // Main data structure
 static struct {
@@ -162,7 +163,8 @@ static void prv_click_config_provider(void *ctx) {
     prv_up_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click_handler);
   window_raw_click_subscribe(BUTTON_ID_SELECT, prv_select_raw_click_handler, NULL, NULL);
-  window_long_click_subscribe(BUTTON_ID_SELECT, 1000, prv_select_long_click_handler, NULL);
+  window_long_click_subscribe(BUTTON_ID_SELECT, BUTTON_HOLD_RESET_MS, prv_select_long_click_handler,
+    NULL);
   window_single_repeating_click_subscribe(BUTTON_ID_DOWN, BUTTON_HOLD_REPEAT_MS,
     prv_down_click_handler);
 }
@@ -178,6 +180,9 @@ static void prv_app_timer_callback(void *data) {
   main_data.app_timer = NULL;
   if (main_data.control_mode == ControlModeCounting) {
     uint32_t duration = timer_get_value_ms() % MSEC_IN_SEC;
+    if (timer_is_chrono()) {
+      duration = MSEC_IN_SEC - duration;
+    }
     main_data.app_timer = app_timer_register(duration + 1, prv_app_timer_callback, NULL);
   }
 }
