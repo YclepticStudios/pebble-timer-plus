@@ -330,10 +330,6 @@ void drawing_start_bounce_animation(bool upward) {
     FOCUS_BOUNCE_ANI_DURATION * 2);
 }
 
-
-//! Create reset animation for focus layer
-void drawing_start_reset_animation(void);
-
 // Render everything to the screen
 void drawing_render(Layer *layer, GContext *ctx) {
   // get properties

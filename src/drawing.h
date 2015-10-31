@@ -14,9 +14,6 @@
 //! @param upward Animate the bounce upward or downward
 void drawing_start_bounce_animation(bool upward);
 
-//! Create reset animation for focus layer
-void drawing_start_reset_animation(void);
-
 //! Render everything to the screen
 //! @param layer The layer being rendered onto
 //! @param ctx The layer's drawing context
