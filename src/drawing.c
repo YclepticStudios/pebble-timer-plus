@@ -18,7 +18,7 @@
 // Progress ring
 #define CIRCLE_RADIUS 60
 #define ANGLE_CHANGE_ANI_THRESHOLD 348
-#define PROGRESS_ANI_DURATION 300
+#define PROGRESS_ANI_DURATION 250
 #define MAIN_TEXT_CIRCLE_RADIUS (CIRCLE_RADIUS - 7)
 #define MAIN_TEXT_BOUNDS GRect(-MAIN_TEXT_CIRCLE_RADIUS, -MAIN_TEXT_CIRCLE_RADIUS / 2,\
  MAIN_TEXT_CIRCLE_RADIUS * 2, MAIN_TEXT_CIRCLE_RADIUS)
@@ -41,6 +41,7 @@
 #define FOCUS_BOUNCE_ANI_SETTLE_DURATION 140
 // Header Text
 #define HEADER_Y_OFFSET 5
+#define FOOTER_Y_OFFSET -39
 
 // Main drawing state description, used to determine changes in state
 typedef struct {
@@ -137,6 +138,29 @@ static void prv_render_header_text(GContext *ctx, GRect bounds) {
     GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 }
 
+// Draw footer text
+static void prv_render_footer_text(GContext *ctx, GRect bounds) {
+  // calculate bounds
+  bounds.origin = grect_center_point(&bounds);
+  bounds.origin.x -= CIRCLE_RADIUS;
+  bounds.origin.y += CIRCLE_RADIUS + FOOTER_Y_OFFSET;
+  bounds.size.w = CIRCLE_RADIUS * 2;
+  bounds.size.h = CIRCLE_RADIUS / 2;
+  // calculate text
+  char buff[10];
+  // in timer mode, get time
+  time_t end_time = epoch() / MSEC_IN_SEC;
+  if (main_get_control_mode() != ControlModeCounting && !timer_is_chrono()) {
+    end_time += timer_get_value_ms() / MSEC_IN_SEC;
+  }
+  // format to readable time
+  struct tm end_tm = *localtime(&end_time);
+  strftime(buff, sizeof(buff), clock_is_24h_style() ? "%k:%M" : "%l:%M", &end_tm);
+  // draw text
+  graphics_draw_text(ctx, buff, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD), bounds,
+    GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Main Text
@@ -187,7 +211,7 @@ static void prv_main_text_update_state(Layer *layer) {
   // animate to new positions
   for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
     animation_grect_start(&drawing_data.text_fields[ii], field_bounds[ii],
-      TEXT_FIELD_ANI_DURATION, 0, CurveSinEaseInOut);
+      TEXT_FIELD_ANI_DURATION, 0, CurveSinEaseOut);
   }
 
   // update the focus layers
@@ -368,9 +392,10 @@ void drawing_render(Layer *layer, GContext *ctx) {
   graphics_context_set_stroke_color(ctx, drawing_data.fore_color);
   graphics_context_set_fill_color(ctx, drawing_data.fore_color);
   prv_render_main_text(ctx, bounds);
-  // draw header text
+  // draw header and footer text
   graphics_context_set_text_color(ctx, drawing_data.fore_color);
   prv_render_header_text(ctx, bounds);
+  prv_render_footer_text(ctx, bounds);
 }
 
 // Update the drawing states and recalculate everythings positions
