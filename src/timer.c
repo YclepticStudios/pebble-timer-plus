@@ -67,7 +67,7 @@ bool timer_is_paused(void) {
 
 // Check if the timer is elapsed and vibrate if this is the first call after elapsing
 void timer_check_elapsed(void) {
-  if (timer_is_chrono() && !timer_data.elapsed) {
+  if (timer_is_chrono() && !timer_is_paused() && !timer_data.elapsed) {
     timer_data.elapsed = true;
     vibes_double_pulse();
   }
@@ -101,6 +101,8 @@ void timer_increment(int64_t increment) {
   } else {
     timer_data.length_ms += step;
   }
+  // enable vibration
+  timer_data.elapsed = false;
 }
 
 // Toggle play pause state for timer
@@ -116,6 +118,8 @@ void timer_toggle_play_pause(void) {
 void timer_reset(void) {
   timer_data.length_ms = 0;
   timer_data.start_ms = 0;
+  // disable vibration
+  timer_data.elapsed = true;
 }
 
 // Save the timer to persistent storage
