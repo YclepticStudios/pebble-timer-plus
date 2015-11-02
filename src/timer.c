@@ -15,6 +15,13 @@
 #define PERSIST_VERSION_KEY 4342896
 #define PERSIST_TIMER_KEY 58734
 
+// Vibration sequence
+static const uint32_t vibe_sequence[10][4] = {[0 ... 9] = {400, 200, 600, 800}};
+static const VibePattern vibe_pattern = {
+  .durations = (uint32_t*)vibe_sequence,
+  .num_segments = sizeof(vibe_sequence) / sizeof(uint32_t),
+};
+
 // Main data structure
 typedef struct {
   int64_t     length_ms;      //< Length of timer in milliseconds
@@ -69,7 +76,7 @@ bool timer_is_paused(void) {
 void timer_check_elapsed(void) {
   if (timer_is_chrono() && !timer_is_paused() && !timer_data.elapsed) {
     timer_data.elapsed = true;
-    vibes_double_pulse();
+    vibes_enqueue_custom_pattern(vibe_pattern);
   }
 }
 
@@ -78,6 +85,7 @@ void timer_increment(int64_t increment) {
   // if in paused stopwatch mode, return to previous time
   if (timer_is_chrono() && timer_data.start_ms) {
     timer_data.start_ms = 0;
+    timer_data.elapsed = false;
     return;
   }
   // identify increment class

@@ -51,6 +51,8 @@ static void prv_layer_update_proc_handler(Layer *layer, GContext *ctx) {
 
 // Back click handler
 static void prv_back_click_handler(ClickRecognizerRef recognizer, void *ctx) {
+  // cancel vibrations
+  vibes_cancel();
   // get time parts
   uint16_t hr, min, sec;
   timer_get_time_parts(&hr, &min, &sec);
@@ -68,6 +70,8 @@ static void prv_back_click_handler(ClickRecognizerRef recognizer, void *ctx) {
 
 // Up click handler
 static void prv_up_click_handler(ClickRecognizerRef recognizer, void *ctx) {
+  // cancel vibrations
+  vibes_cancel();
   if (main_data.control_mode == ControlModeCounting) {
     return;
   }
@@ -118,6 +122,8 @@ static void prv_select_click_handler(ClickRecognizerRef recognizer, void *ctx) {
 
 // Select raw click handler
 static void prv_select_raw_click_handler(ClickRecognizerRef recognizer, void *ctx) {
+  // cancel vibrations
+  vibes_cancel();
   // animate and refresh
   drawing_start_reset_animation();
   // drawing_update();
@@ -135,6 +141,8 @@ static void prv_select_long_click_handler(ClickRecognizerRef recognizer, void *c
 
 // Down click handler
 static void prv_down_click_handler(ClickRecognizerRef recognizer, void *ctx) {
+  // cancel vibrations
+  vibes_cancel();
   if (main_data.control_mode == ControlModeCounting) {
     return;
   }
