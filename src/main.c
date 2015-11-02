@@ -194,6 +194,8 @@ static void prv_app_timer_callback(void *data) {
 
 // Initialize the program
 static void prv_initialize(void) {
+  // cancel any existing wakeup events
+  wakeup_cancel_all();
   // load timer
   timer_persist_read();
   // set initial states
@@ -235,6 +237,12 @@ static void prv_initialize(void) {
 
 // Terminate the program
 static void prv_terminate(void) {
+  // schedule wakeup
+  if (!timer_is_chrono() && !timer_is_paused()) {
+    time_t wakeup_time = (epoch() + timer_get_value_ms()) / MSEC_IN_SEC;
+    wakeup_schedule(wakeup_time, 0, true);
+  }
+  // destroy
   timer_persist_store();
   drawing_terminate();
   layer_destroy(main_data.layer);
