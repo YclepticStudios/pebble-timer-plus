@@ -25,6 +25,10 @@ int64_t timer_get_value_ms(void);
 //! @return The total value of the timer in milliseconds
 int64_t timer_get_length_ms(void);
 
+//! Check if the timer is vibrating
+//! @return True if the timer is currently vibrating
+bool timer_is_vibrating(void);
+
 //! Check if timer is in stopwatch mode
 //! @return True if it is counting up as a stopwatch
 bool timer_is_chrono(void);
@@ -42,6 +46,9 @@ void timer_increment(int64_t increment);
 
 //! Toggle play pause state for timer
 void timer_toggle_play_pause(void);
+
+//! Rewind the timer back to its original value
+void timer_rewind(void);
 
 //! Reset the timer to zero
 void timer_reset(void);

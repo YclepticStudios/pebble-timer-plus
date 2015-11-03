@@ -32,6 +32,18 @@ static void prv_app_timer_callback(void *data);
 // Private Functions
 //
 
+// Rewind timer if button is clicked to stop vibration
+static bool main_timer_rewind(void) {
+  // check if timer is vibrating
+  if (timer_is_vibrating()) {
+    vibes_cancel();
+    main_data.control_mode = ControlModeEditSec;
+    timer_rewind();
+    drawing_update();
+    return true;
+  }
+  return false;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Callbacks
@@ -69,9 +81,8 @@ static void prv_back_click_handler(ClickRecognizerRef recognizer, void *ctx) {
 
 // Up click handler
 static void prv_up_click_handler(ClickRecognizerRef recognizer, void *ctx) {
-  // cancel vibrations
-  vibes_cancel();
-  if (main_data.control_mode == ControlModeCounting) {
+  // rewind timer if clicked while timer is going off
+  if (main_timer_rewind()) {
     return;
   }
   // increment timer
@@ -94,6 +105,10 @@ static void prv_up_click_handler(ClickRecognizerRef recognizer, void *ctx) {
 
 // Select click handler
 static void prv_select_click_handler(ClickRecognizerRef recognizer, void *ctx) {
+  // rewind timer if clicked while timer is going off
+  if (main_timer_rewind()) {
+    return;
+  }
   // change timer mode
   switch (main_data.control_mode) {
     case ControlModeEditHr:
@@ -121,11 +136,10 @@ static void prv_select_click_handler(ClickRecognizerRef recognizer, void *ctx) {
 
 // Select raw click handler
 static void prv_select_raw_click_handler(ClickRecognizerRef recognizer, void *ctx) {
-  // cancel vibrations
+  // stop vibration
   vibes_cancel();
   // animate and refresh
   drawing_start_reset_animation();
-  // drawing_update();
   layer_mark_dirty(main_data.layer);
 }
 
@@ -140,9 +154,8 @@ static void prv_select_long_click_handler(ClickRecognizerRef recognizer, void *c
 
 // Down click handler
 static void prv_down_click_handler(ClickRecognizerRef recognizer, void *ctx) {
-  // cancel vibrations
-  vibes_cancel();
-  if (main_data.control_mode == ControlModeCounting) {
+  // rewind timer if clicked while timer is going off
+  if (main_timer_rewind()) {
     return;
   }
   // increment timer

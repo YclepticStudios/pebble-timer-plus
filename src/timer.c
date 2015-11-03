@@ -14,9 +14,11 @@
 #define PERSIST_VERSION 2
 #define PERSIST_VERSION_KEY 4342896
 #define PERSIST_TIMER_KEY 58734
+#define VIBRATION_LENGTH_MS 20000
 
 // Vibration sequence
-static const uint32_t vibe_sequence[10][4] = {[0 ... 9] = {400, 200, 600, 800}};
+static const uint32_t vibe_sequence[VIBRATION_LENGTH_MS / 2000][4] =
+  {[0 ... (VIBRATION_LENGTH_MS / 2000 - 1)] = {400, 200, 600, 800}};
 static const VibePattern vibe_pattern = {
   .durations = (uint32_t*)vibe_sequence,
   .num_segments = sizeof(vibe_sequence) / sizeof(uint32_t),
@@ -58,6 +60,11 @@ int64_t timer_get_value_ms(void) {
 // Get the total timer time in milliseconds
 int64_t timer_get_length_ms(void) {
   return timer_data.length_ms;
+}
+
+// Check if the timer is vibrating
+bool timer_is_vibrating(void) {
+  return timer_is_chrono() && !timer_is_paused() && timer_get_value_ms() < VIBRATION_LENGTH_MS;
 }
 
 // Check if timer is in stopwatch mode
@@ -120,6 +127,13 @@ void timer_toggle_play_pause(void) {
   } else {
     timer_data.start_ms += epoch();
   }
+}
+
+//! Rewind the timer back to its original value
+void timer_rewind(void) {
+  timer_data.start_ms = 0;
+  // enable vibration
+  timer_data.elapsed = false;
 }
 
 // Reset the timer to zero
