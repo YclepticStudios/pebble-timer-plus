@@ -70,8 +70,8 @@ bool timer_is_vibrating(void) {
 // Check if timer is in stopwatch mode
 bool timer_is_chrono(void) {
   // see timer_get_timer_parts for explanation of equation
-  return (timer_data.length_ms - (int64_t)epoch() +
-    ((timer_data.start_ms + (int64_t)epoch() - 1) % (int64_t)epoch() + 1)) / MSEC_IN_SEC <= 0;
+  return timer_data.length_ms - (int64_t)epoch() +
+    ((timer_data.start_ms + (int64_t)epoch() - 1) % (int64_t)epoch() + 1) <= 0;
 }
 
 // Check if timer or stopwatch is paused
