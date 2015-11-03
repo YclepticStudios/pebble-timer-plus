@@ -369,8 +369,12 @@ void drawing_start_reset_animation(void) {
   for (uint8_t ii = 0; ii < FOCUS_FIELD_COUNT; ii++) {
     focus_to_bounds[ii] = grect_inset(drawing_data.focus_fields[ii],
       GEdgeInsets1(FOCUS_FIELD_SHRINK_INSET));
+    // shrinking animation
     animation_grect_start(&drawing_data.focus_fields[ii], focus_to_bounds[ii],
-      FOCUS_FIELD_SHRINK_DURATION, 0, CurveSinEaseOut);
+      FOCUS_FIELD_SHRINK_DURATION, 0, CurveLinear);
+    // return animation back to original size
+    animation_grect_start(&drawing_data.focus_fields[ii], drawing_data.focus_fields[ii],
+      FOCUS_FIELD_SHRINK_DURATION, BUTTON_HOLD_RESET_MS, CurveLinear);
   }
 }
 

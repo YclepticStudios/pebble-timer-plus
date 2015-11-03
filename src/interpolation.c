@@ -19,7 +19,7 @@
 
 // Linear interpolation
 static int32_t prv_curve_linear(int32_t from, int32_t to, uint32_t percent, uint32_t percent_max) {
-  return from + (to - from) * percent / percent_max;
+  return from + (to - from) * (int32_t)percent / (int32_t)percent_max;
 }
 
 // Quadratic interpolation in

@@ -15,7 +15,6 @@
 
 // Main constants
 #define BUTTON_HOLD_REPEAT_MS 100
-#define BUTTON_HOLD_RESET_MS 750
 
 // Main data structure
 static struct {

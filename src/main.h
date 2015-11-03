@@ -10,6 +10,7 @@
 #pragma once
 #include <pebble.h>
 
+#define BUTTON_HOLD_RESET_MS 750
 
 // Current control mode
 typedef enum {
