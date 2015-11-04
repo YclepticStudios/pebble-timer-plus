@@ -17,11 +17,10 @@
 #define VIBRATION_LENGTH_MS 20000
 
 // Vibration sequence
-static const uint32_t vibe_sequence[VIBRATION_LENGTH_MS / 2000][4] =
-  {[0 ... (VIBRATION_LENGTH_MS / 2000 - 1)] = {400, 200, 600, 800}};
+static const uint32_t vibe_sequence[] = {150, 200, 300};
 static const VibePattern vibe_pattern = {
-  .durations = (uint32_t*)vibe_sequence,
-  .num_segments = sizeof(vibe_sequence) / sizeof(uint32_t),
+  .durations = vibe_sequence,
+  .num_segments = ARRAY_LENGTH(vibe_sequence),
 };
 
 // Main data structure
@@ -29,6 +28,7 @@ typedef struct {
   int64_t     length_ms;      //< Length of timer in milliseconds
   int64_t     start_ms;       //< The start epoch of the timer in milliseconds
   bool        elapsed;        //< Used to start the vibration if first time as elapsed
+  bool        can_vibrate;    //< Flag used to tell when the timer has completed
 } Timer;
 Timer timer_data;
 
@@ -64,7 +64,7 @@ int64_t timer_get_length_ms(void) {
 
 // Check if the timer is vibrating
 bool timer_is_vibrating(void) {
-  return timer_is_chrono() && !timer_is_paused() && timer_get_value_ms() < VIBRATION_LENGTH_MS;
+  return timer_is_chrono() && !timer_is_paused() && timer_data.can_vibrate;
 }
 
 // Check if timer is in stopwatch mode
@@ -81,18 +81,21 @@ bool timer_is_paused(void) {
 
 // Check if the timer is elapsed and vibrate if this is the first call after elapsing
 void timer_check_elapsed(void) {
-  if (timer_is_chrono() && !timer_is_paused() && !timer_data.elapsed) {
-    timer_data.elapsed = true;
+  if (timer_is_chrono() && !timer_is_paused() && timer_data.can_vibrate) {
+    // stop vibration after certain duration
+    if (timer_get_value_ms() > VIBRATION_LENGTH_MS) {
+      timer_data.can_vibrate = false;
+    }
+    // vibrate
     vibes_enqueue_custom_pattern(vibe_pattern);
   }
 }
 
 // Increment timer value currently being edited
 void timer_increment(int64_t increment) {
-  // if in paused stopwatch mode, return to previous time
+  // if in paused stopwatch mode, rewind to previous time
   if (timer_is_chrono() && timer_data.start_ms) {
-    timer_data.start_ms = 0;
-    timer_data.elapsed = false;
+    timer_rewind();
     return;
   }
   // identify increment class
@@ -116,8 +119,14 @@ void timer_increment(int64_t increment) {
   } else {
     timer_data.length_ms += step;
   }
+  // if at zero, remove any leftover milliseconds
+  if (timer_get_value_ms() < MSEC_IN_SEC) {
+    timer_reset();
+  }
   // enable vibration
-  timer_data.elapsed = false;
+  if (timer_data.length_ms) {
+    timer_data.can_vibrate = true;
+  }
 }
 
 // Toggle play pause state for timer
@@ -133,7 +142,9 @@ void timer_toggle_play_pause(void) {
 void timer_rewind(void) {
   timer_data.start_ms = 0;
   // enable vibration
-  timer_data.elapsed = false;
+  if (timer_data.length_ms) {
+    timer_data.can_vibrate = true;
+  }
 }
 
 // Reset the timer to zero
@@ -141,7 +152,7 @@ void timer_reset(void) {
   timer_data.length_ms = 0;
   timer_data.start_ms = 0;
   // disable vibration
-  timer_data.elapsed = true;
+  timer_data.can_vibrate = false;
 }
 
 // Save the timer to persistent storage
