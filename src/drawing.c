@@ -289,17 +289,9 @@ static void prv_progress_ring_update(void) {
 
 // Compare two different TextStates, return true if same
 static bool prv_text_state_compare(DrawState text_state_1, DrawState text_state_2) {
-  if (text_state_1.control_mode != text_state_2.control_mode) {
-    return false;
-  } else if (text_state_1.control_mode == ControlModeCounting &&
-             (text_state_1.hr_digits != text_state_2.hr_digits ||
-             text_state_1.min_digits != text_state_2.min_digits)) {
-    return false;
-  } else if ((text_state_1.hr_digits == 0 && text_state_2.hr_digits != 0) ||
-             (text_state_1.hr_digits != 0 && text_state_2.hr_digits == 0)) {
-    return false;
-  }
-  return true;
+  return text_state_1.control_mode == text_state_2.control_mode &&
+         text_state_1.hr_digits == text_state_2.hr_digits &&
+         text_state_1.min_digits == text_state_2.min_digits;
 }
 
 // Create a state description

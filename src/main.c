@@ -94,7 +94,22 @@ static void prv_up_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   } else {
     increment = MSEC_IN_SEC;
   }
+  // get starting time components
+  uint16_t o_hr, o_min, o_sec;
+  timer_get_time_parts(&o_hr, &o_min, &o_sec);
+  // increment timer
   timer_increment(increment);
+  // compare final time parts and switch into edit hr mode
+  uint16_t n_hr, n_min, n_sec;
+  timer_get_time_parts(&n_hr, &n_min, &n_sec);
+  if (o_min > n_min && !o_hr) {
+    timer_increment(MSEC_IN_HR);
+    main_data.control_mode = ControlModeEditHr;
+  }
+  // check if switched out of ControlModeEditHr
+  if (timer_get_value_ms() / MSEC_IN_HR == 0 && main_data.control_mode == ControlModeEditHr) {
+    main_data.control_mode = ControlModeEditMin;
+  }
   // animate and refresh
   if (!click_recognizer_is_repeating(recognizer)) {
     drawing_start_bounce_animation(true);
@@ -168,6 +183,10 @@ static void prv_down_click_handler(ClickRecognizerRef recognizer, void *ctx) {
     increment = -MSEC_IN_SEC;
   }
   timer_increment(increment);
+  // check if switched out of ControlModeEditHr
+  if (timer_get_value_ms() / MSEC_IN_HR == 0 && main_data.control_mode == ControlModeEditHr) {
+    main_data.control_mode = ControlModeEditMin;
+  }
   // animate and refresh
   if (!click_recognizer_is_repeating(recognizer)) {
     drawing_start_bounce_animation(false);
