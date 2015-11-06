@@ -222,7 +222,7 @@ static void prv_app_timer_callback(void *data) {
     if (timer_is_chrono()) {
       duration = MSEC_IN_SEC - duration;
     }
-    main_data.app_timer = app_timer_register(duration + 1, prv_app_timer_callback, NULL);
+    main_data.app_timer = app_timer_register(duration + 5, prv_app_timer_callback, NULL);
   }
 }
 
