@@ -226,6 +226,12 @@ static void prv_app_timer_callback(void *data) {
   }
 }
 
+// TickTimerService callback
+static void prv_tick_timer_service_callback(struct tm *tick_time, TimeUnits units_changed) {
+  // refresh
+  layer_mark_dirty(main_data.layer);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Loading and Unloading
@@ -270,12 +276,16 @@ static void prv_initialize(void) {
 
   // initialize drawing singleton
   drawing_initialize(main_data.layer);
+  // subscribe to tick timer service
+  tick_timer_service_subscribe(MINUTE_UNIT, prv_tick_timer_service_callback);
   // start refreshing
   prv_app_timer_callback(NULL);
 }
 
 // Terminate the program
 static void prv_terminate(void) {
+  // unsubscribe from timer service
+  tick_timer_service_unsubscribe();
   // schedule wakeup
   if (!timer_is_chrono() && !timer_is_paused()) {
     time_t wakeup_time = (epoch() + timer_get_value_ms()) / MSEC_IN_SEC;
