@@ -109,9 +109,14 @@ static void prv_focus_layer_update_state(Layer *layer, GRect hr_bounds, GRect mi
 
 // Draw the focus layer
 static void prv_render_focus_layer(GContext *ctx) {
+#ifdef PBL_SDK_2
+  graphics_fill_rect_grey(ctx, drawing_data.focus_fields[0]);
+  graphics_fill_rect_grey(ctx, drawing_data.focus_fields[1]);
+#else
   graphics_context_set_fill_color(ctx, drawing_data.ring_color);
   graphics_fill_rect(ctx, drawing_data.focus_fields[0], 0, GCornerNone);
   graphics_fill_rect(ctx, drawing_data.focus_fields[1], 0, GCornerNone);
+#endif
 }
 
 
@@ -382,7 +387,11 @@ void drawing_render(Layer *layer, GContext *ctx) {
   // draw background
   // this is actually the ring, which is then covered up with the background
   graphics_context_set_fill_color(ctx, drawing_data.ring_color);
+#ifdef PBL_SDK_2
+  graphics_fill_rect_grey(ctx, bounds);
+#else
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
+#endif
   prv_render_progress_ring(ctx, bounds);
   // draw main circle
   graphics_context_set_fill_color(ctx, drawing_data.mid_color);

@@ -59,6 +59,20 @@ void graphics_fill_radial(GContext *ctx, GRect bounds, uint8_t fill_mode, int16_
   gpath_draw_filled(ctx, path);
   gpath_destroy(path);
 }
+
+// Fill GRect with "grey" on Aplite
+GBitmap *grey_bmp = NULL;
+void graphics_fill_rect_grey(GContext *ctx, GRect rect) {
+  // create if first call
+  if (!grey_bmp) {
+    grey_bmp = gbitmap_create_blank(GSize(2, 2), GBitmapFormat1Bit);
+    uint8_t *data = gbitmap_get_data(grey_bmp);
+    data[0] = 0b00000001;
+    data[4] = 0b00000010;
+  }
+  // draw grey rectangle with bitmap
+  graphics_draw_bitmap_in_rect(ctx, grey_bmp, rect);
+}
 #endif
 
 
