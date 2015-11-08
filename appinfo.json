@@ -13,6 +13,13 @@
     "dummy": 0
   },
   "resources": {
-    "media": []
+    "media": [
+      {
+        "file": "images/timer_icon.png",
+        "type": "png",
+        "name": "IMAGE_ICON",
+        "menuIcon": true
+      }
+    ]
   }
 }
