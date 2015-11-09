@@ -1,16 +1,13 @@
 {
-  "uuid": "1e41a34e-fab2-4d9d-af87-dca4530c9f67",
-  "shortName": "Timer++",
-  "longName": "Timer++",
-  "companyName": "MakeAwesomeHappen",
-  "versionLabel": "1.0",
+  "uuid": "17bf83aa-88a9-459a-a6e5-60aa60e1dc07",
+  "shortName": "Timer+",
+  "longName": "Timer+",
+  "companyName": "Ycleptic Studios",
+  "versionLabel": "4.0",
   "sdkVersion": "3",
   "targetPlatforms": ["aplite", "basalt", "chalk"],
   "watchapp": {
     "watchface": false
-  },
-  "appKeys": {
-    "dummy": 0
   },
   "resources": {
     "media": [

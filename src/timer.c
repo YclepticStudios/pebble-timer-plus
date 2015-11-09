@@ -15,6 +15,8 @@
 #define PERSIST_VERSION_KEY 4342896
 #define PERSIST_TIMER_KEY 58734
 #define VIBRATION_LENGTH_MS 20000
+// legacy persistent storage
+#define PERSIST_TIMER_KEY_V2 3456
 
 // Vibration sequence
 static const uint32_t vibe_sequence[] = {150, 200, 300};
@@ -164,6 +166,15 @@ void timer_persist_store(void) {
 
 // Read the timer from persistent storage
 void timer_persist_read(void) {
+  // read legacy version
+  if (persist_exists(PERSIST_TIMER_KEY_V2)) {
+    persist_delete(PERSIST_TIMER_KEY_V2);
+    if (launch_reason() == APP_LAUNCH_WAKEUP) {
+      timer_increment(5000);
+      timer_toggle_play_pause();
+    }
+  }
+  // read current version
   if (persist_exists(PERSIST_TIMER_KEY)) {
     persist_read_data(PERSIST_TIMER_KEY, &timer_data, sizeof(timer_data));
   } else {
