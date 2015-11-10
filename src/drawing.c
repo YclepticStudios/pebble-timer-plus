@@ -341,22 +341,23 @@ void drawing_start_bounce_animation(bool upward) {
   rect_to.origin.y = drawing_data.text_fields[1].origin.y;
   animation_grect_start(txt_rect, rect_to, FOCUS_BOUNCE_ANI_SETTLE_DURATION,
     FOCUS_BOUNCE_ANI_DURATION, CurveSinEaseOut);
+  // get focus layer desired bounds
+  GRect focus_bounds = drawing_data.text_fields[0];
+  if (main_get_control_mode() == ControlModeEditMin) {
+    focus_bounds = drawing_data.text_fields[2];
+  } else if (main_get_control_mode() == ControlModeEditSec){
+    focus_bounds = drawing_data.text_fields[4];
+  }
+  focus_bounds.origin.y = drawing_data.text_fields[3].origin.y;
+  focus_bounds = grect_inset(focus_bounds, GEdgeInsets1(-FOCUS_FIELD_BORDER));
   // animate focus layer
-  rect_to = drawing_data.focus_field;
+  rect_to = focus_bounds;
   rect_to.origin.y += (upward ? -1 : 0) * FOCUS_BOUNCE_ANI_HEIGHT;
   rect_to.size.h += FOCUS_BOUNCE_ANI_HEIGHT;
   animation_grect_start(&drawing_data.focus_field, rect_to, FOCUS_BOUNCE_ANI_DURATION,
     FOCUS_BOUNCE_ANI_DURATION, CurveSinEaseIn);
   // return to original position
-  // get final bounds when in editing mode
-  GRect txt_bounds = drawing_data.text_fields[0];
-  if (main_get_control_mode() == ControlModeEditMin) {
-    txt_bounds = drawing_data.text_fields[2];
-  } else if (main_get_control_mode() == ControlModeEditSec){
-    txt_bounds = drawing_data.text_fields[4];
-  }
-  rect_to = grect_inset(txt_bounds, GEdgeInsets1(-FOCUS_FIELD_BORDER));
-  animation_grect_start(&drawing_data.focus_field, rect_to, FOCUS_BOUNCE_ANI_SETTLE_DURATION,
+  animation_grect_start(&drawing_data.focus_field, focus_bounds, FOCUS_BOUNCE_ANI_SETTLE_DURATION,
     FOCUS_BOUNCE_ANI_DURATION * 2, CurveSinEaseOut);
 }
 
