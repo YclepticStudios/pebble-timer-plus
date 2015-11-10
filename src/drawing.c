@@ -30,9 +30,7 @@
 #define TEXT_FIELD_EDIT_SPACING 7
 #define TEXT_FIELD_ANI_DURATION 140
 // Focus Layer
-#define FOCUS_FIELD_COUNT 2
 #define FOCUS_FIELD_BORDER 5
-#define FOCUS_FIELD_PAUSE_RADIUS (CIRCLE_RADIUS / 2 - 3)
 #define FOCUS_FIELD_SHRINK_INSET 3
 #define FOCUS_FIELD_SHRINK_DURATION 80
 #define FOCUS_FIELD_ANI_DURATION 150
@@ -56,7 +54,7 @@ static struct {
   int32_t     progress_angle;     //< The current angle of the progress ring
   DrawState   draw_state;         //< An arbitrary description of the main drawing state
   GRect       text_fields[TEXT_FIELD_COUNT];      //< The number of text fields (hr : min : sec)
-  GRect       focus_fields[FOCUS_FIELD_COUNT];    //< The number of focus fields (selection layer)
+  GRect       focus_field;        //< The selection field layer
   GColor      fore_color;         //< Color of text
   GColor      mid_color;          //< Color of center
   GColor      ring_color;         //< Color of ring
@@ -75,18 +73,13 @@ static void prv_focus_layer_update_state(Layer *layer, GRect hr_bounds, GRect mi
   GRect bounds = layer_get_bounds(layer);
   // check current control mode
   if (main_get_control_mode() == ControlModeCounting) {
-    // calculate the size of the pause icon
-    bounds.origin = grect_center_point(&bounds);
-    bounds.origin.x -= FOCUS_FIELD_PAUSE_RADIUS;
-    bounds.origin.y -= FOCUS_FIELD_PAUSE_RADIUS;
-    bounds.size.w = FOCUS_FIELD_PAUSE_RADIUS * 2 / 3;
-    bounds.size.h = FOCUS_FIELD_PAUSE_RADIUS * 2;
-    // animate first focus rectangle
-    animation_grect_start(&drawing_data.focus_fields[0], bounds, FOCUS_FIELD_ANI_DURATION, 0,
-      CurveSinEaseOut);
-    // shift grect for rightmost part of pause symbol
-    bounds.origin.x += FOCUS_FIELD_PAUSE_RADIUS * 4 / 3;
-    animation_grect_start(&drawing_data.focus_fields[1], bounds, FOCUS_FIELD_ANI_DURATION, 0,
+    // calculate the bounds for the focus layer off the screen
+    bounds.origin.x = bounds.size.w;
+    bounds.origin.y = bounds.size.h / 2 - sec_bounds.size.h / 4;
+    bounds.size.w = sec_bounds.size.w;
+    bounds.size.h = sec_bounds.size.h / 2;
+    // animate the focus layer
+    animation_grect_start(&drawing_data.focus_field, bounds, FOCUS_FIELD_ANI_DURATION, 0,
       CurveSinEaseOut);
   } else {
     // get final bounds when in editing mode
@@ -100,9 +93,7 @@ static void prv_focus_layer_update_state(Layer *layer, GRect hr_bounds, GRect mi
     // add border
     bounds = grect_inset(bounds, GEdgeInsets1(-FOCUS_FIELD_BORDER));
     // animate the focus field to those bounds
-    animation_grect_start(&drawing_data.focus_fields[0], bounds, FOCUS_FIELD_ANI_DURATION, 0,
-      CurveSinEaseOut);
-    animation_grect_start(&drawing_data.focus_fields[1], bounds, FOCUS_FIELD_ANI_DURATION, 0,
+    animation_grect_start(&drawing_data.focus_field, bounds, FOCUS_FIELD_ANI_DURATION, 0,
       CurveSinEaseOut);
   }
 }
@@ -110,12 +101,10 @@ static void prv_focus_layer_update_state(Layer *layer, GRect hr_bounds, GRect mi
 // Draw the focus layer
 static void prv_render_focus_layer(GContext *ctx) {
 #ifdef PBL_SDK_2
-  graphics_fill_rect_grey(ctx, drawing_data.focus_fields[0]);
-  graphics_fill_rect_grey(ctx, drawing_data.focus_fields[1]);
+  graphics_fill_rect_grey(ctx, drawing_data.focus_field);
 #else
   graphics_context_set_fill_color(ctx, drawing_data.ring_color);
-  graphics_fill_rect(ctx, drawing_data.focus_fields[0], 0, GCornerNone);
-  graphics_fill_rect(ctx, drawing_data.focus_fields[1], 0, GCornerNone);
+  graphics_fill_rect(ctx, drawing_data.focus_field, 0, GCornerNone);
 #endif
 }
 
@@ -336,8 +325,7 @@ static void prv_update_draw_state(Layer *layer) {
 void drawing_start_bounce_animation(bool upward) {
   // get the currently selected elements
   // only animate the position of one focus layer, stacking gives appearance of stretching
-  GRect *txt_rect, *fcs_rect;
-  fcs_rect = &drawing_data.focus_fields[0];
+  GRect *txt_rect;
   if (main_get_control_mode() == ControlModeEditHr) {
     txt_rect = &drawing_data.text_fields[0];
   } else if (main_get_control_mode() == ControlModeEditMin) {
@@ -354,30 +342,36 @@ void drawing_start_bounce_animation(bool upward) {
   animation_grect_start(txt_rect, rect_to, FOCUS_BOUNCE_ANI_SETTLE_DURATION,
     FOCUS_BOUNCE_ANI_DURATION, CurveSinEaseOut);
   // animate focus layer
-  rect_to = (*fcs_rect);
-  rect_to.origin.y = drawing_data.focus_fields[1].origin.y;
-  rect_to.origin.y += (upward ? -1 : 1) * FOCUS_BOUNCE_ANI_HEIGHT;
-  animation_grect_start(fcs_rect, rect_to, FOCUS_BOUNCE_ANI_DURATION, FOCUS_BOUNCE_ANI_DURATION,
-    CurveSinEaseIn);
-  rect_to.origin.y = drawing_data.focus_fields[1].origin.y;
-  animation_grect_start(fcs_rect, rect_to, FOCUS_BOUNCE_ANI_SETTLE_DURATION,
+  rect_to = drawing_data.focus_field;
+  rect_to.origin.y += (upward ? -1 : 0) * FOCUS_BOUNCE_ANI_HEIGHT;
+  rect_to.size.h += FOCUS_BOUNCE_ANI_HEIGHT;
+  animation_grect_start(&drawing_data.focus_field, rect_to, FOCUS_BOUNCE_ANI_DURATION,
+    FOCUS_BOUNCE_ANI_DURATION, CurveSinEaseIn);
+  // return to original position
+  // get final bounds when in editing mode
+  GRect txt_bounds = drawing_data.text_fields[0];
+  if (main_get_control_mode() == ControlModeEditMin) {
+    txt_bounds = drawing_data.text_fields[2];
+  } else {
+    txt_bounds = drawing_data.text_fields[4];
+  }
+  rect_to = grect_inset(txt_bounds, GEdgeInsets1(-FOCUS_FIELD_BORDER));
+  animation_grect_start(&drawing_data.focus_field, rect_to, FOCUS_BOUNCE_ANI_SETTLE_DURATION,
     FOCUS_BOUNCE_ANI_DURATION * 2, CurveSinEaseOut);
 }
 
 // Create reset animation for focus layer
 void drawing_start_reset_animation(void) {
   // create shrunken focus bounds and animate to new bounds
-  GRect focus_to_bounds[FOCUS_FIELD_COUNT];
-  for (uint8_t ii = 0; ii < FOCUS_FIELD_COUNT; ii++) {
-    focus_to_bounds[ii] = grect_inset(drawing_data.focus_fields[ii],
-      GEdgeInsets1(FOCUS_FIELD_SHRINK_INSET));
-    // shrinking animation
-    animation_grect_start(&drawing_data.focus_fields[ii], focus_to_bounds[ii],
-      FOCUS_FIELD_SHRINK_DURATION, 0, CurveLinear);
-    // return animation back to original size
-    animation_grect_start(&drawing_data.focus_fields[ii], drawing_data.focus_fields[ii],
-      FOCUS_FIELD_SHRINK_DURATION, BUTTON_HOLD_RESET_MS, CurveLinear);
-  }
+  GRect focus_to_bounds;
+  focus_to_bounds = grect_inset(drawing_data.focus_field,
+    GEdgeInsets1(FOCUS_FIELD_SHRINK_INSET));
+  // shrinking animation
+  animation_grect_start(&drawing_data.focus_field, focus_to_bounds,
+    FOCUS_FIELD_SHRINK_DURATION, 0, CurveLinear);
+  // return animation back to original size
+  animation_grect_start(&drawing_data.focus_field, drawing_data.focus_field,
+    FOCUS_FIELD_SHRINK_DURATION, BUTTON_HOLD_RESET_MS, CurveLinear);
 }
 
 // Render everything to the screen
@@ -428,18 +422,16 @@ void drawing_initialize(Layer *layer) {
     drawing_data.text_fields[ii].origin = grect_center_point(&bounds);
     drawing_data.text_fields[ii].size = GSizeZero;
   }
-  for (uint8_t ii = 0; ii < FOCUS_FIELD_COUNT; ii++) {
-    drawing_data.focus_fields[ii].origin = grect_center_point(&bounds);
-    drawing_data.focus_fields[ii].size = GSizeZero;
-  }
+  drawing_data.focus_field.origin = grect_center_point(&bounds);
+  drawing_data.focus_field.size = GSizeZero;
   // set initial draw state to something which guaranties a refresh
   drawing_data.draw_state = (DrawState) {
     .hr_digits = 99,
   };
   // set the colors
   drawing_data.fore_color = GColorBlack;
-  drawing_data.mid_color = PBL_IF_COLOR_ELSE(GColorPastelYellow, GColorWhite);
-  drawing_data.ring_color = PBL_IF_COLOR_ELSE(GColorOrange, GColorWhite);
+  drawing_data.mid_color = PBL_IF_COLOR_ELSE(GColorMintGreen, GColorWhite);
+  drawing_data.ring_color = PBL_IF_COLOR_ELSE(GColorGreen, GColorWhite);
   drawing_data.back_color = PBL_IF_COLOR_ELSE(GColorDarkGray, GColorBlack);
   // set animation update callback
   animation_register_update_callback(&prv_animation_update_callback);
