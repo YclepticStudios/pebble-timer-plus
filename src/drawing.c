@@ -352,7 +352,7 @@ void drawing_start_bounce_animation(bool upward) {
   GRect txt_bounds = drawing_data.text_fields[0];
   if (main_get_control_mode() == ControlModeEditMin) {
     txt_bounds = drawing_data.text_fields[2];
-  } else {
+  } else if (main_get_control_mode() == ControlModeEditSec){
     txt_bounds = drawing_data.text_fields[4];
   }
   rect_to = grect_inset(txt_bounds, GEdgeInsets1(-FOCUS_FIELD_BORDER));
