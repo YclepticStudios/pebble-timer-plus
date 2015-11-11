@@ -3,7 +3,7 @@
   "shortName": "Timer+",
   "longName": "Timer+",
   "companyName": "Ycleptic Studios",
-  "versionLabel": "4.0",
+  "versionLabel": "4.1",
   "sdkVersion": "3",
   "targetPlatforms": ["aplite", "basalt", "chalk"],
   "watchapp": {
