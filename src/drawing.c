@@ -424,6 +424,9 @@ void drawing_initialize(Layer *layer) {
     drawing_data.text_fields[ii].size = GSizeZero;
   }
   drawing_data.focus_field.origin = grect_center_point(&bounds);
+  if (main_get_control_mode() == ControlModeCounting) {
+    drawing_data.focus_field.origin.x = bounds.size.w;
+  }
   drawing_data.focus_field.size = GSizeZero;
   // set initial draw state to something which guaranties a refresh
   drawing_data.draw_state = (DrawState) {
