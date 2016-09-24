@@ -59,7 +59,9 @@ void graphics_fill_radial(GContext *ctx, GRect bounds, uint8_t fill_mode, int16_
   gpath_draw_filled(ctx, path);
   gpath_destroy(path);
 }
+#endif
 
+#ifdef PBL_BW
 // Fill GRect with "grey" on Aplite
 GBitmap *grey_bmp = NULL;
 void graphics_fill_rect_grey(GContext *ctx, GRect rect) {
