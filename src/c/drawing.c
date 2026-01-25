@@ -8,6 +8,7 @@
 // @bugs No known bugs
 
 #include <pebble.h>
+#include <pebble-scalable/pebble-scalable.h>
 #include "animation.h"
 #include "main.h"
 #include "text_render.h"
@@ -15,31 +16,43 @@
 #include "utility.h"
 
 // Drawing constants
+
+// Note for future Eric: scalable works by dividing the absolute pixel 
+// value by the original Pebble (144x168) axis size you want to scale to. 
+// [value] / [width or height] * 1000. Your original CIRCLE_RADIUS value 
+// was 63 for a circle you want to fix inside the x axis, so 63 / 144 * 1000 = 438.
+
 // Progress ring
-#define CIRCLE_RADIUS 63
+#define CIRCLE_RADIUS scl_x(438)
 #define ANGLE_CHANGE_ANI_THRESHOLD 348
 #define PROGRESS_ANI_DURATION 250
-#define MAIN_TEXT_CIRCLE_RADIUS (CIRCLE_RADIUS - 7)
+#define MAIN_TEXT_CIRCLE_RADIUS (CIRCLE_RADIUS - scl_x(49))
 #define MAIN_TEXT_BOUNDS GRect(-MAIN_TEXT_CIRCLE_RADIUS, -MAIN_TEXT_CIRCLE_RADIUS / 2,\
  MAIN_TEXT_CIRCLE_RADIUS * 2, MAIN_TEXT_CIRCLE_RADIUS)
-#define MAIN_TEXT_CIRCLE_RADIUS_EDIT (CIRCLE_RADIUS - 17)
+#define MAIN_TEXT_CIRCLE_RADIUS_EDIT (CIRCLE_RADIUS - scl_x(118))
 #define MAIN_TEXT_BOUNDS_EDIT GRect(-MAIN_TEXT_CIRCLE_RADIUS_EDIT, \
  -MAIN_TEXT_CIRCLE_RADIUS_EDIT / 2, MAIN_TEXT_CIRCLE_RADIUS_EDIT * 2, MAIN_TEXT_CIRCLE_RADIUS_EDIT)
 // Main Text
 #define TEXT_FIELD_COUNT 5
-#define TEXT_FIELD_EDIT_SPACING 7
+#define TEXT_FIELD_EDIT_SPACING scl_x(49)
 #define TEXT_FIELD_ANI_DURATION 140
 // Focus Layer
-#define FOCUS_FIELD_BORDER 5
-#define FOCUS_FIELD_SHRINK_INSET 3
+#define FOCUS_FIELD_BORDER scl_x(35)
+#define FOCUS_FIELD_SHRINK_INSET scl_x(21)
 #define FOCUS_FIELD_SHRINK_DURATION 80
 #define FOCUS_FIELD_ANI_DURATION 150
-#define FOCUS_BOUNCE_ANI_HEIGHT 8
+#define FOCUS_BOUNCE_ANI_HEIGHT scl_y(48)
 #define FOCUS_BOUNCE_ANI_DURATION 70
 #define FOCUS_BOUNCE_ANI_SETTLE_DURATION 140
 // Header Text
-#define HEADER_Y_OFFSET 5
-#define FOOTER_Y_OFFSET -39
+#define HEADER_Y_OFFSET scl_y(30)
+#define FOOTER_Y_OFFSET scl_y(-232)
+// Fonts
+static GFont font_gothic_24_bold, font_gothic_28_bold;
+typedef enum {
+  ScalableFontLabel,
+  ScalableFontTime,
+} ScalableFontIds;
 
 // Main drawing state description, used to determine changes in state
 typedef struct {
@@ -128,7 +141,7 @@ static void prv_render_header_text(GContext *ctx, GRect bounds) {
   } else {
     buff = "Timer";
   }
-  graphics_draw_text(ctx, buff, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), bounds,
+  graphics_draw_text(ctx, buff, scl_get_font(ScalableFontLabel), bounds,
     GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 }
 
@@ -151,7 +164,7 @@ static void prv_render_footer_text(GContext *ctx, GRect bounds) {
   struct tm end_tm = *localtime(&end_time);
   strftime(buff, sizeof(buff), clock_is_24h_style() ? "%k:%M" : "%l:%M", &end_tm);
   // draw text
-  graphics_draw_text(ctx, buff, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD), bounds,
+  graphics_draw_text(ctx, buff, scl_get_font(ScalableFontTime), bounds,
     GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 }
 
@@ -432,6 +445,19 @@ void drawing_initialize(Layer *layer) {
   drawing_data.draw_state = (DrawState) {
     .hr_digits = 99,
   };
+  // set fonts
+  font_gothic_24_bold = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
+  font_gothic_28_bold = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
+  scl_set_fonts(ScalableFontLabel, {
+    .o = font_gothic_24_bold, // Everything else
+    .c = font_gothic_28_bold, // Chalk (Pebble Time Round)
+    .e = font_gothic_28_bold // Emery (Pebble Time 2*)
+  });
+  scl_set_fonts(ScalableFontTime, {
+    .o = font_gothic_28_bold, // Everything else
+    .c = font_gothic_28_bold, // Chalk (Pebble Time Round)
+    .e = font_gothic_28_bold // Emery (Pebble Time 2*)
+  });
   // set the colors
   drawing_data.fore_color = GColorBlack;
   drawing_data.mid_color = PBL_IF_COLOR_ELSE(GColorMintGreen, GColorWhite);

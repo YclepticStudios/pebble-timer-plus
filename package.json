@@ -6,7 +6,9 @@
     "pebble-app"
   ],
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "pebble-scalable": "^2.0.0"
+  },
   "pebble": {
     "displayName": "Timer+",
     "uuid": "17bf83aa-88a9-459a-a6e5-60aa60e1dc07",
