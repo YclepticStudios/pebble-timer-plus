@@ -2,3 +2,5 @@ build
 .lock-waf*
 .idea/
 .DS_Store
+node_modules
+.vscode
