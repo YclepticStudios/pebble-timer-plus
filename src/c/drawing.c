@@ -23,7 +23,12 @@
 // was 63 for a circle you want to fix inside the x axis, so 63 / 144 * 1000 = 438.
 
 // Progress ring
+#ifdef PBL_ROUND
+// This is a lower value to simulate the original padding that the fixed 63px radius had
+#define CIRCLE_RADIUS scl_x(350)
+#else
 #define CIRCLE_RADIUS scl_x(438)
+#endif
 #define ANGLE_CHANGE_ANI_THRESHOLD 348
 #define PROGRESS_ANI_DURATION 250
 #define MAIN_TEXT_CIRCLE_RADIUS (CIRCLE_RADIUS - scl_x(49))
@@ -450,12 +455,10 @@ void drawing_initialize(Layer *layer) {
   font_gothic_28_bold = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
   scl_set_fonts(ScalableFontLabel, {
     .o = font_gothic_24_bold, // Everything else
-    .c = font_gothic_28_bold, // Chalk (Pebble Time Round)
     .e = font_gothic_28_bold // Emery (Pebble Time 2*)
   });
   scl_set_fonts(ScalableFontTime, {
     .o = font_gothic_28_bold, // Everything else
-    .c = font_gothic_28_bold, // Chalk (Pebble Time Round)
     .e = font_gothic_28_bold // Emery (Pebble Time 2*)
   });
   // set the colors
