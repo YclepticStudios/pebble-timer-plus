@@ -7,7 +7,7 @@
   ],
   "private": true,
   "dependencies": {
-    "pebble-scalable": "^2.0.0"
+    "pebble-scalable": "^2.2.0"
   },
   "pebble": {
     "displayName": "Timer+",
@@ -20,7 +20,8 @@
       "chalk",
       "diorite",
       "emery",
-      "flint"
+      "flint",
+      "gabbro"
     ],
     "watchapp": {
       "watchface": false

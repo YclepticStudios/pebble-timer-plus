@@ -455,11 +455,13 @@ void drawing_initialize(Layer *layer) {
   font_gothic_28_bold = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
   scl_set_fonts(ScalableFontLabel, {
     .o = font_gothic_24_bold, // Everything else
-    .e = font_gothic_28_bold // Emery (Pebble Time 2*)
+    .e = font_gothic_28_bold, // Emery (Pebble Time 2*)
+    .g = font_gothic_28_bold // Gabbro (Pebble Round 2)
   });
   scl_set_fonts(ScalableFontTime, {
     .o = font_gothic_28_bold, // Everything else
-    .e = font_gothic_28_bold // Emery (Pebble Time 2*)
+    .e = font_gothic_28_bold, // Emery (Pebble Time 2*)
+    .g = font_gothic_28_bold // Gabbro (Pebble Round 2)
   });
   // set the colors
   drawing_data.fore_color = GColorBlack;
