@@ -10,7 +10,6 @@
 // @bug No known bugs
 
 #include "text_render.h"
-
 #include <pebble.h>
 
 // Constants
@@ -70,6 +69,13 @@ static Character *LECO_CHARS[] = {&LECO_0, &LECO_1, &LECO_2, &LECO_3, &LECO_4, &
 // Private Functions
 //
 
+static int16_t prv_scale_character_point(int16_t value, int16_t char_size, int16_t font_size) {
+  int16_t centered_value = value - (char_size / 2);
+  int16_t scaled_value = centered_value * font_size / CHARACTER_DEFINITION_HEIGHT;
+  int16_t offset_value = scaled_value + (char_size * font_size / CHARACTER_DEFINITION_HEIGHT / 2);
+  return offset_value;
+}
+
 // Draw a LECO character
 static void prv_draw_character(GContext *ctx, GPath *path, Character *leco_char, uint16_t font_size,
                                GPoint position) {
@@ -77,8 +83,10 @@ static void prv_draw_character(GContext *ctx, GPath *path, Character *leco_char,
   path->num_points = leco_char->num_points;
   memcpy(path->points, leco_char->points, sizeof(leco_char->points));
   for (uint8_t kk = 0; kk < leco_char->num_points; kk++) {
-    path->points[kk].x = path->points[kk].x * font_size / CHARACTER_DEFINITION_HEIGHT;
-    path->points[kk].y = path->points[kk].y * font_size / CHARACTER_DEFINITION_HEIGHT;
+    path->points[kk].x =
+        prv_scale_character_point(path->points[kk].x, leco_char->char_width, font_size);
+    path->points[kk].y =
+        prv_scale_character_point(path->points[kk].y, CHARACTER_DEFINITION_HEIGHT, font_size);
   }
   path->offset = position;
   gpath_draw_filled(ctx, path);
