@@ -4,7 +4,7 @@
     {
       "label": "Build",
       "type": "shell",
-      "command": "mkdir -p build && bear --output build/compile_commands.json -- pebble build",
+      "command": "pebble build",
       "group": {
         "kind": "build",
         "isDefault": true
