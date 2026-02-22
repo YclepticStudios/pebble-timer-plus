@@ -144,6 +144,11 @@ GRect text_render_get_content_bounds(char *buff, uint16_t font_size) {
 uint16_t text_render_get_max_font_size(char *buff, GRect bounds) {
   // get the unscaled size of the rendered string
   GRect unscaled_bounds = text_render_get_content_bounds(buff, CHARACTER_DEFINITION_HEIGHT);
+  // prevent divide by zero for empty strings or zero-size bounds
+  if (unscaled_bounds.size.w <= 0 || unscaled_bounds.size.h <= 0 ||
+      bounds.size.w <= 0 || bounds.size.h <= 0) {
+    return 0;
+  }
   // calculate the maximum font size which stays within this rectangle
   uint16_t font_size_w = CHARACTER_DEFINITION_HEIGHT * bounds.size.w / unscaled_bounds.size.w;
   uint16_t font_size_h = CHARACTER_DEFINITION_HEIGHT * bounds.size.h / unscaled_bounds.size.h;
@@ -158,6 +163,10 @@ void text_render_draw_text(GContext *ctx, char *buff, uint16_t font_size, GPoint
 
 // Renders the LECO font at the largest possible size that will fit within a certain size rectangle
 void text_render_draw_scalable_text(GContext *ctx, char *buff, GRect bounds) {
+  // early return for empty strings or zero/negative-size bounds to prevent divide by zero
+  if (buff[0] == '\0' || bounds.size.w <= 0 || bounds.size.h <= 0) {
+    return;
+  }
   // get the unscaled size of the rendered string
   GRect unscaled_bounds = text_render_get_content_bounds(buff, CHARACTER_DEFINITION_HEIGHT);
   // calculate the maximum font size which stays within this rectangle

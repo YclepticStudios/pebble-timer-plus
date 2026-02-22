@@ -1,0 +1,41 @@
+{
+  "name": "pebble-timer-plus",
+  "author": "Ycleptic Studios",
+  "version": "4.2.0",
+  "keywords": [
+    "pebble-app"
+  ],
+  "private": true,
+  "dependencies": {
+    "pebble-scalable": "^2.2.0"
+  },
+  "pebble": {
+    "displayName": "Timer+",
+    "uuid": "17bf83aa-88a9-459a-a6e5-60aa60e1dc07",
+    "sdkVersion": "3",
+    "enableMultiJS": false,
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite",
+      "emery",
+      "flint",
+      "gabbro"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "resources": {
+      "media": [
+        {
+          "file": "images/timer_icon.png",
+          "type": "bitmap",
+          "name": "IMAGE_ICON",
+          "memoryFormat": "1Bit",
+          "menuIcon": true
+        }
+      ]
+    }
+  }
+}

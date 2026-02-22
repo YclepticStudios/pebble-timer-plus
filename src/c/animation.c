@@ -107,10 +107,12 @@ static void prv_animation_timer_callback(void *data) {
   // loop over list and step each animation
   AnimationNode *cur_node = head_node;
   while (cur_node) {
+    // save next pointer before stepping, since step may free cur_node via animation_stop()
+    AnimationNode *next_node = cur_node->next;
     if (epoch() > cur_node->start_time + (uint64_t)cur_node->delay) {
       (*cur_node->step_func)(cur_node);
     }
-    cur_node = cur_node->next;
+    cur_node = next_node;
   }
   // continue animation
   if (head_node) {

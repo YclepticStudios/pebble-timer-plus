@@ -39,7 +39,7 @@ static int32_t prv_curve_quad_ease_out(int32_t from, int32_t to, uint32_t percen
 // Quadratic interpolation in out
 static int32_t prv_curve_quad_ease_in_out(int32_t from, int32_t to, uint32_t percent,
                                           uint32_t percent_max) {
-  int32_t t_percent = percent * 100 / (percent_max / 2);
+  int32_t t_percent = percent * 200 / percent_max;
   if (t_percent < 100) {
     return (to - from) / 2 * t_percent * t_percent / 10000 + from;
   }

@@ -102,9 +102,9 @@ void timer_increment(int64_t increment) {
   }
   // identify increment class
   int64_t interval;
-  if (abs(increment) < MSEC_IN_MIN) {
+  if (llabs(increment) < MSEC_IN_MIN) {
     interval = MSEC_IN_MIN;
-  } else if (abs(increment) < MSEC_IN_HR) {
+  } else if (llabs(increment) < MSEC_IN_HR) {
     interval = MSEC_IN_HR;
   } else {
     interval = MSEC_IN_HR * 100;
