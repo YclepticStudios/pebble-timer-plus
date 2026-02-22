@@ -1,0 +1,36 @@
+{
+  "files.associations": {
+    "*.h": "c",
+    "*.c": "c"
+  },
+  "editor.detectIndentation": false,
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  // C
+  "clangd.arguments": [
+    "--compile-commands-dir=${workspaceFolder}/build",
+    "--background-index",
+    "--completion-style=detailed",
+    "--header-insertion=iwyu",
+    "--function-arg-placeholders=false"
+  ],
+  "[c]": {
+    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+    "editor.rulers": [100]
+  },
+  // Markdown
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.rulers": [100],
+    "prettier.proseWrap": "always",
+    "prettier.printWidth": 100
+  },
+  // JSON
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}

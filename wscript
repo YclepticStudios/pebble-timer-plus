@@ -1,8 +1,7 @@
 #
 # This file is the default set of rules to compile a Pebble application.
 #
-# Feel free to customize this to your needs.
-#
+
 import os.path
 
 top = '.'
