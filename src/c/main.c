@@ -7,26 +7,25 @@
 // @date August 27, 2015
 // @bugs No known bugs
 
-#include <pebble.h>
 #include "main.h"
 #include "drawing.h"
 #include "timer.h"
 #include "utility.h"
+#include <pebble.h>
 
 // Main constants
 #define BUTTON_HOLD_REPEAT_MS 100
 
 // Main data structure
 static struct {
-  Window      *window;      //< The base window for the application
-  Layer       *layer;       //< The base layer on which everything will be drawn
+  Window *window;           //< The base window for the application
+  Layer *layer;             //< The base layer on which everything will be drawn
   ControlMode control_mode; //< The current control mode of the timer
-  AppTimer    *app_timer;   //< The AppTimer to keep the screen refreshing
+  AppTimer *app_timer;      //< The AppTimer to keep the screen refreshing
 } main_data;
 
 // Function declarations
 static void prv_app_timer_callback(void *data);
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Private Functions
@@ -50,9 +49,7 @@ static bool main_timer_rewind(void) {
 //
 
 // Get the current control mode of the timer
-ControlMode main_get_control_mode(void) {
-  return main_data.control_mode;
-}
+ControlMode main_get_control_mode(void) { return main_data.control_mode; }
 
 // Background layer update procedure
 static void prv_layer_update_proc_handler(Layer *layer, GContext *ctx) {
@@ -126,23 +123,23 @@ static void prv_select_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   }
   // change timer mode
   switch (main_data.control_mode) {
-    case ControlModeEditHr:
-      main_data.control_mode = ControlModeEditMin;
-      break;
-    case ControlModeEditMin:
-      main_data.control_mode = ControlModeEditSec;
-      break;
-    case ControlModeEditSec:
-      main_data.control_mode = ControlModeCounting;
-      timer_toggle_play_pause();
-      if (!main_data.app_timer) {
-        prv_app_timer_callback(NULL);
-      }
-      break;
-    case ControlModeCounting:
-      main_data.control_mode = ControlModeEditSec;
-      timer_toggle_play_pause();
-      break;
+  case ControlModeEditHr:
+    main_data.control_mode = ControlModeEditMin;
+    break;
+  case ControlModeEditMin:
+    main_data.control_mode = ControlModeEditSec;
+    break;
+  case ControlModeEditSec:
+    main_data.control_mode = ControlModeCounting;
+    timer_toggle_play_pause();
+    if (!main_data.app_timer) {
+      prv_app_timer_callback(NULL);
+    }
+    break;
+  case ControlModeCounting:
+    main_data.control_mode = ControlModeEditSec;
+    timer_toggle_play_pause();
+    break;
   }
   // refresh
   drawing_update();
@@ -199,13 +196,13 @@ static void prv_down_click_handler(ClickRecognizerRef recognizer, void *ctx) {
 static void prv_click_config_provider(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_BACK, prv_back_click_handler);
   window_single_repeating_click_subscribe(BUTTON_ID_UP, BUTTON_HOLD_REPEAT_MS,
-    prv_up_click_handler);
+                                          prv_up_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click_handler);
   window_raw_click_subscribe(BUTTON_ID_SELECT, prv_select_raw_click_handler, NULL, NULL);
   window_long_click_subscribe(BUTTON_ID_SELECT, BUTTON_HOLD_RESET_MS, prv_select_long_click_handler,
-    NULL);
+                              NULL);
   window_single_repeating_click_subscribe(BUTTON_ID_DOWN, BUTTON_HOLD_REPEAT_MS,
-    prv_down_click_handler);
+                                          prv_down_click_handler);
 }
 
 // AppTimer callback
@@ -231,7 +228,6 @@ static void prv_tick_timer_service_callback(struct tm *tick_time, TimeUnits unit
   // refresh
   layer_mark_dirty(main_data.layer);
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Loading and Unloading

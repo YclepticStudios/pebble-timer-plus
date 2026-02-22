@@ -20,12 +20,11 @@ static const uint8_t STRING_MAX_LENGTH = 64;
 
 // Structure for the data contained in one font character
 typedef struct {
-  char      character;    //< The character being represented
-  uint8_t   char_width;   //< The width of the character (compare to
-  uint8_t   num_points;   //< The number of points in that character
-  GPoint    points[14];   //< The array of points for that character
+  char character;     //< The character being represented
+  uint8_t char_width; //< The width of the character (compare to
+  uint8_t num_points; //< The number of points in that character
+  GPoint points[14];  //< The array of points for that character
 } Character;
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Font Data
@@ -33,6 +32,7 @@ typedef struct {
 
 // This is the data for the LECO font. Each character is composed of an array of points,
 // that, when drawn filled, will form the character
+// clang-format off
 static Character LECO_0 = {'0', 178, 10, {{0, 0}, {178, 0}, {178, 255}, {0, 255}, {0, 0},
                                           {50, 0}, {50, 205}, {128, 205}, {128, 50}, {0, 50}}};
 static Character LECO_1 = {'1', 178, 10, {{0, 0}, {114, 0}, {114, 205}, {178, 205}, {178, 255},
@@ -61,10 +61,10 @@ static Character LECO_9 = {'9', 178, 12, {{0, 255}, {178, 255}, {178, 0}, {0, 0}
                                           {128, 205}, {0, 205}}};
 static Character LECO_C = {':', 50, 4, {{0, 50}, {50, 50}, {50, 100}, {0, 100}}};
 static Character LECO_P = {'.', 50, 4, {{0, 205}, {50, 205}, {50, 255}, {0, 255}}};
+// clang-format on
 
 static Character *LECO_CHARS[] = {&LECO_0, &LECO_1, &LECO_2, &LECO_3, &LECO_4, &LECO_5,
                                   &LECO_6, &LECO_7, &LECO_8, &LECO_9, &LECO_C, &LECO_P};
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Private Functions
@@ -90,9 +90,9 @@ static void prv_draw_text(GContext *ctx, char *buff, uint16_t font_size, GPoint 
   // graphics path to draw
   GPoint cur_origin = position;
   cur_origin.x += (CHARACTER_DEFINITION_KERNING * font_size / CHARACTER_DEFINITION_HEIGHT) / 2;
-  GPath path = (GPath) {
-    .points = (GPoint*)malloc(sizeof(LECO_CHARS[0]->points)),
-    .offset = cur_origin,
+  GPath path = (GPath){
+      .points = (GPoint *)malloc(sizeof(LECO_CHARS[0]->points)),
+      .offset = cur_origin,
   };
   // loop over characters in buff until NUL character is reached
   for (uint8_t ii = 0; ii < STRING_MAX_LENGTH && buff[ii] != '\0'; ii++) {
@@ -106,8 +106,8 @@ static void prv_draw_text(GContext *ctx, char *buff, uint16_t font_size, GPoint 
           prv_draw_character(ctx, &path, &LECO_P, font_size, cur_origin);
         }
         // recalculate current character origin (top left)
-        cur_origin.x += (LECO_CHARS[jj]->char_width + CHARACTER_DEFINITION_KERNING) *
-                        font_size / CHARACTER_DEFINITION_HEIGHT;
+        cur_origin.x += (LECO_CHARS[jj]->char_width + CHARACTER_DEFINITION_KERNING) * font_size /
+                        CHARACTER_DEFINITION_HEIGHT;
         break;
       }
     }
@@ -115,7 +115,6 @@ static void prv_draw_text(GContext *ctx, char *buff, uint16_t font_size, GPoint 
   // free memory
   free(path.points);
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // API Functions
@@ -145,8 +144,8 @@ uint16_t text_render_get_max_font_size(char *buff, GRect bounds) {
   // get the unscaled size of the rendered string
   GRect unscaled_bounds = text_render_get_content_bounds(buff, CHARACTER_DEFINITION_HEIGHT);
   // prevent divide by zero for empty strings or zero-size bounds
-  if (unscaled_bounds.size.w <= 0 || unscaled_bounds.size.h <= 0 ||
-      bounds.size.w <= 0 || bounds.size.h <= 0) {
+  if (unscaled_bounds.size.w <= 0 || unscaled_bounds.size.h <= 0 || bounds.size.w <= 0 ||
+      bounds.size.h <= 0) {
     return 0;
   }
   // calculate the maximum font size which stays within this rectangle
@@ -175,10 +174,12 @@ void text_render_draw_scalable_text(GContext *ctx, char *buff, GRect bounds) {
   uint16_t font_size = (font_size_h < font_size_w) ? font_size_h : font_size_w;
   // center the text
   GPoint position;
-  position.x = bounds.origin.x + (bounds.size.w - unscaled_bounds.size.w * font_size /
-                                                  CHARACTER_DEFINITION_HEIGHT) / 2;
-  position.y = bounds.origin.y + (bounds.size.h - unscaled_bounds.size.h * font_size /
-                                                  CHARACTER_DEFINITION_HEIGHT) / 2;
+  position.x =
+      bounds.origin.x +
+      (bounds.size.w - unscaled_bounds.size.w * font_size / CHARACTER_DEFINITION_HEIGHT) / 2;
+  position.y =
+      bounds.origin.y +
+      (bounds.size.h - unscaled_bounds.size.h * font_size / CHARACTER_DEFINITION_HEIGHT) / 2;
   // draw the text onto the graphics context
   prv_draw_text(ctx, buff, font_size, position);
 }

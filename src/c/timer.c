@@ -21,19 +21,18 @@
 // Vibration sequence
 static const uint32_t vibe_sequence[] = {150, 200, 300};
 static const VibePattern vibe_pattern = {
-  .durations = vibe_sequence,
-  .num_segments = ARRAY_LENGTH(vibe_sequence),
+    .durations = vibe_sequence,
+    .num_segments = ARRAY_LENGTH(vibe_sequence),
 };
 
 // Main data structure
 typedef struct {
-  int64_t     length_ms;      //< Length of timer in milliseconds
-  int64_t     start_ms;       //< The start epoch of the timer in milliseconds
-  bool        elapsed;        //< Used to start the vibration if first time as elapsed
-  bool        can_vibrate;    //< Flag used to tell when the timer has completed
+  int64_t length_ms; //< Length of timer in milliseconds
+  int64_t start_ms;  //< The start epoch of the timer in milliseconds
+  bool elapsed;      //< Used to start the vibration if first time as elapsed
+  bool can_vibrate;  //< Flag used to tell when the timer has completed
 } Timer;
 Timer timer_data;
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // API Functions
@@ -51,8 +50,8 @@ void timer_get_time_parts(uint16_t *hr, uint16_t *min, uint16_t *sec) {
 // 1. when the timer is running, start_ms represents the epoch when it was started
 // 2. when it is paused, start_ms represents the negative of the time is has been running
 int64_t timer_get_value_ms(void) {
-  int64_t value = timer_data.length_ms - epoch() +
-    (((timer_data.start_ms + epoch() - 1) % epoch()) + 1);
+  int64_t value =
+      timer_data.length_ms - epoch() + (((timer_data.start_ms + epoch() - 1) % epoch()) + 1);
   if (value < 0) {
     return -value;
   }
@@ -60,9 +59,7 @@ int64_t timer_get_value_ms(void) {
 }
 
 // Get the total timer time in milliseconds
-int64_t timer_get_length_ms(void) {
-  return timer_data.length_ms;
-}
+int64_t timer_get_length_ms(void) { return timer_data.length_ms; }
 
 // Check if the timer is vibrating
 bool timer_is_vibrating(void) {
@@ -73,13 +70,12 @@ bool timer_is_vibrating(void) {
 bool timer_is_chrono(void) {
   // see timer_get_timer_parts for explanation of equation
   return timer_data.length_ms - (int64_t)epoch() +
-    ((timer_data.start_ms + (int64_t)epoch() - 1) % (int64_t)epoch() + 1) <= 0;
+             ((timer_data.start_ms + (int64_t)epoch() - 1) % (int64_t)epoch() + 1) <=
+         0;
 }
 
 // Check if timer or stopwatch is paused
-bool timer_is_paused(void) {
-  return timer_data.start_ms <= 0;
-}
+bool timer_is_paused(void) { return timer_data.start_ms <= 0; }
 
 // Check if the timer is elapsed and vibrate if this is the first call after elapsing
 void timer_check_elapsed(void) {
