@@ -25,27 +25,27 @@
 // Progress ring
 #ifdef PBL_ROUND
 // This is a lower value to simulate the original padding that the fixed 63px radius had
-#define CIRCLE_RADIUS scl_x(350)
+#define CIRCLE_RADIUS scl_y(355)
 #else
-#define CIRCLE_RADIUS scl_x(438)
+#define CIRCLE_RADIUS scl_y(375)
 #endif
 #define ANGLE_CHANGE_ANI_THRESHOLD 348
 #define PROGRESS_ANI_DURATION 250
-#define MAIN_TEXT_CIRCLE_RADIUS (CIRCLE_RADIUS - scl_x(49))
+#define MAIN_TEXT_CIRCLE_RADIUS (CIRCLE_RADIUS - scl_y(42))
 #define MAIN_TEXT_BOUNDS                                                                           \
   GRect(-MAIN_TEXT_CIRCLE_RADIUS, -MAIN_TEXT_CIRCLE_RADIUS / 2, MAIN_TEXT_CIRCLE_RADIUS * 2,       \
         MAIN_TEXT_CIRCLE_RADIUS)
-#define MAIN_TEXT_CIRCLE_RADIUS_EDIT (CIRCLE_RADIUS - scl_x(118))
+#define MAIN_TEXT_CIRCLE_RADIUS_EDIT (CIRCLE_RADIUS - scl_y(101))
 #define MAIN_TEXT_BOUNDS_EDIT                                                                      \
   GRect(-MAIN_TEXT_CIRCLE_RADIUS_EDIT, -MAIN_TEXT_CIRCLE_RADIUS_EDIT / 2,                          \
         MAIN_TEXT_CIRCLE_RADIUS_EDIT * 2, MAIN_TEXT_CIRCLE_RADIUS_EDIT)
 // Main Text
 #define TEXT_FIELD_COUNT 5
-#define TEXT_FIELD_EDIT_SPACING scl_x(49)
+#define TEXT_FIELD_EDIT_SPACING scl_y(42)
 #define TEXT_FIELD_ANI_DURATION 140
 // Focus Layer
-#define FOCUS_FIELD_BORDER scl_x(35)
-#define FOCUS_FIELD_SHRINK_INSET scl_x(21)
+#define FOCUS_FIELD_BORDER scl_y(30)
+#define FOCUS_FIELD_SHRINK_INSET scl_y(18)
 #define FOCUS_FIELD_SHRINK_DURATION 80
 #define FOCUS_FIELD_ANI_DURATION 150
 #define FOCUS_BOUNCE_ANI_HEIGHT scl_y(48)
@@ -53,12 +53,11 @@
 #define FOCUS_BOUNCE_ANI_SETTLE_DURATION 140
 // Header Text
 #define HEADER_Y_OFFSET scl_y(30)
-#define FOOTER_Y_OFFSET scl_y(-232)
+#define FOOTER_Y_OFFSET scl_y(110)
+#define FOOTER_WIDTH (CIRCLE_RADIUS - scl_y(5))
 // Fonts
-static GFont font_gothic_24_bold, font_gothic_28_bold;
 typedef enum {
   ScalableFontLabel,
-  ScalableFontTime,
 } ScalableFontIds;
 
 // Main drawing state description, used to determine changes in state
@@ -154,10 +153,10 @@ static void prv_render_header_text(GContext *ctx, GRect bounds) {
 static void prv_render_footer_text(GContext *ctx, GRect bounds) {
   // calculate bounds
   bounds.origin = grect_center_point(&bounds);
-  bounds.origin.x -= CIRCLE_RADIUS;
-  bounds.origin.y += CIRCLE_RADIUS + FOOTER_Y_OFFSET;
-  bounds.size.w = CIRCLE_RADIUS * 2;
-  bounds.size.h = CIRCLE_RADIUS / 2;
+  bounds.size.w = FOOTER_WIDTH;
+  bounds.size.h = CIRCLE_RADIUS - FOOTER_Y_OFFSET;
+  bounds.origin.x -= bounds.size.w / 2;
+  bounds.origin.y += FOOTER_Y_OFFSET;
   // calculate text
   char buff[10];
   // in timer mode, get time
@@ -169,8 +168,7 @@ static void prv_render_footer_text(GContext *ctx, GRect bounds) {
   struct tm end_tm = *localtime(&end_time);
   strftime(buff, sizeof(buff), clock_is_24h_style() ? "%k:%M" : "%l:%M", &end_tm);
   // draw text
-  graphics_draw_text(ctx, buff, scl_get_font(ScalableFontTime), bounds, GTextOverflowModeFill,
-                     GTextAlignmentCenter, NULL);
+  text_render_draw_scalable_text(ctx, buff, bounds);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -446,16 +444,11 @@ void drawing_initialize(Layer *layer) {
       .hr_digits = 99,
   };
   // set fonts
-  font_gothic_24_bold = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-  font_gothic_28_bold = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
+  GFont font_gothic_24_bold = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
+  GFont font_gothic_28_bold = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
   // clang-format off
   scl_set_fonts(ScalableFontLabel, {
     .o = font_gothic_24_bold, // Everything else
-    .e = font_gothic_28_bold, // Emery (Pebble Time 2*)
-    .g = font_gothic_28_bold, // Gabbro (Pebble Round 2)
-  });
-  scl_set_fonts(ScalableFontTime, {
-    .o = font_gothic_28_bold, // Everything else
     .e = font_gothic_28_bold, // Emery (Pebble Time 2*)
     .g = font_gothic_28_bold, // Gabbro (Pebble Round 2)
   });
