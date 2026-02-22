@@ -21,10 +21,16 @@ pebble build
 
 ### VS Code
 
-To configure Visual Studio Code with formatting and intellisense perform the following:
+To configure Visual Studio Code with formatting and intellisense run the following commands. This
+will need to be repeated any time the build configuration changes (aka file or package additions).
 
 1. Ensure `bear` is installed: `sudo apt install bear`.
-2. Run the `Show Recommended Extensions` command and install them.
-3. Run the default build command `ctrl + shift + b` to build the project.
-   - This uses `bear` to generate a `compile_commands.json` file for clang while building the
-     project.
+2. Ensure a clean build so all commands will be captured: `pebble clean`.
+3. Create the build directory: `mkdir -p build`.
+4. Generate the `compile_commands.json` file:
+   `bear --output build/compile_commands.json -- pebble build`.
+5. Run the `Show Recommended Extensions` command and install the suggested extensions.
+6. Run `clangd: Restart language server` for changes to take effect.
+
+After configuring, the project can be built either via the command line (`pebble build`) or by the
+default build command (`ctrl + shift + b`).
