@@ -13,25 +13,25 @@
 #include "utility.h"
 
 // Animation constants
-#define ANIMATION_TICK_INTERVAL 30      //< Number of milliseconds to pause between animation ticks
+#define ANIMATION_TICK_INTERVAL 30 //< Number of milliseconds to pause between animation ticks
 
 // Animation pointer type
 typedef struct AnimationNode {
-  void (*step_func)(struct AnimationNode*);   //< Function to call when stepping animation
-  void                    *target;            //< Pointer to value being animated
-  void                    *from;              //< Pointer to value to animate from
-  void                    *to;                //< Pointer to value to animate to
-  uint64_t                start_time;         //< Millisecond epoch of when animation was started
-  uint32_t                duration;           //< Duration of animation in milliseconds
-  uint32_t                delay;              //< Time to wait before animating
-  InterpolationCurve      interpolation;      //< The interpolation mode to use with this animation
-  struct AnimationNode    *next;              //< Pointer to next node in linked list
+  void (*step_func)(struct AnimationNode *); //< Function to call when stepping animation
+  void *target;                              //< Pointer to value being animated
+  void *from;                                //< Pointer to value to animate from
+  void *to;                                  //< Pointer to value to animate to
+  uint64_t start_time;                       //< Millisecond epoch of when animation was started
+  uint32_t duration;                         //< Duration of animation in milliseconds
+  uint32_t delay;                            //< Time to wait before animating
+  InterpolationCurve interpolation;          //< The interpolation mode to use with this animation
+  struct AnimationNode *next;                //< Pointer to next node in linked list
 } AnimationNode;
 
 // Animation framework data
-static AnimationNode  *head_node = NULL;      //< Head node in linked list containing all animations
-static AppTimer       *ani_timer = NULL;      //< AppTimer for stepping all animations
-static void   (*ani_callback)(void) = NULL;   //< Animation update callback
+static AnimationNode *head_node = NULL;   //< Head node in linked list containing all animations
+static AppTimer *ani_timer = NULL;        //< AppTimer for stepping all animations
+static void (*ani_callback)(void) = NULL; //< Animation update callback
 
 // Functions
 static void prv_animation_timer_start(void);
@@ -46,21 +46,21 @@ static void prv_animation_step_grect(AnimationNode *node) {
   // while this animation is delayed
   if (!node->from) {
     node->from = MALLOC(sizeof(GRect));
-    (*(GRect*)node->from) = (*(GRect*)node->target);
+    (*(GRect *)node->from) = (*(GRect *)node->target);
   }
   // step value
-  GRect from = (*(GRect*)node->from);
-  GRect to = (*(GRect*)node->to);
+  GRect from = (*(GRect *)node->from);
+  GRect to = (*(GRect *)node->to);
   uint32_t percent_max = node->duration;
   uint32_t percent = epoch() - (node->start_time + node->delay);
-  (*(GRect*)node->target).origin.x = interpolation_integer(from.origin.x, to.origin.x, percent,
-    percent_max, node->interpolation);
-  (*(GRect*)node->target).origin.y = interpolation_integer(from.origin.y, to.origin.y, percent,
-    percent_max, node->interpolation);
-  (*(GRect*)node->target).size.w = interpolation_integer(from.size.w, to.size.w, percent,
-    percent_max, node->interpolation);
-  (*(GRect*)node->target).size.h = interpolation_integer(from.size.h, to.size.h, percent,
-    percent_max, node->interpolation);
+  (*(GRect *)node->target).origin.x =
+      interpolation_integer(from.origin.x, to.origin.x, percent, percent_max, node->interpolation);
+  (*(GRect *)node->target).origin.y =
+      interpolation_integer(from.origin.y, to.origin.y, percent, percent_max, node->interpolation);
+  (*(GRect *)node->target).size.w =
+      interpolation_integer(from.size.w, to.size.w, percent, percent_max, node->interpolation);
+  (*(GRect *)node->target).size.h =
+      interpolation_integer(from.size.h, to.size.h, percent, percent_max, node->interpolation);
   // continue animation
   if (percent >= percent_max) {
     animation_stop(node->target);
@@ -73,15 +73,15 @@ static void prv_animation_step_int32(AnimationNode *node) {
   // while this animation is delayed
   if (!node->from) {
     node->from = MALLOC(sizeof(int32_t));
-    (*(int32_t*)node->from) = (*(int32_t*)node->target);
+    (*(int32_t *)node->from) = (*(int32_t *)node->target);
   }
   // step value
-  int32_t from = (*(int32_t*)node->from);
-  int32_t to = (*(int32_t*)node->to);
+  int32_t from = (*(int32_t *)node->from);
+  int32_t to = (*(int32_t *)node->to);
   uint32_t percent_max = node->duration;
   uint32_t percent = epoch() - (node->start_time + node->delay);
-  (*(int32_t*)node->target) = interpolation_integer(from, to, percent, percent_max,
-    node->interpolation);
+  (*(int32_t *)node->target) =
+      interpolation_integer(from, to, percent, percent_max, node->interpolation);
   // continue animation
   if (percent >= percent_max) {
     animation_stop(node->target);
@@ -131,7 +131,6 @@ static void prv_animation_timer_start(void) {
   }
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // API Functions
 //
@@ -140,12 +139,12 @@ static void prv_animation_timer_start(void) {
 void animation_grect_start(GRect *ptr, GRect to, uint32_t duration, uint32_t delay,
                            InterpolationCurve interpolation) {
   // create and add new node
-  AnimationNode *new_node = (AnimationNode*)MALLOC(sizeof(AnimationNode));
+  AnimationNode *new_node = (AnimationNode *)MALLOC(sizeof(AnimationNode));
   new_node->step_func = &prv_animation_step_grect;
   new_node->target = ptr;
   new_node->from = NULL; // assigned on first "step" callback in case of delayed animation
   new_node->to = MALLOC(sizeof(GRect));
-  (*(GRect*)new_node->to) = to;
+  (*(GRect *)new_node->to) = to;
   new_node->start_time = epoch();
   new_node->duration = duration;
   new_node->delay = delay;
@@ -160,12 +159,12 @@ void animation_grect_start(GRect *ptr, GRect to, uint32_t duration, uint32_t del
 void animation_int32_start(int32_t *ptr, int32_t to, uint32_t duration, uint32_t delay,
                            InterpolationCurve interpolation) {
   // create and add new node
-  AnimationNode *new_node = (AnimationNode*)MALLOC(sizeof(AnimationNode));
+  AnimationNode *new_node = (AnimationNode *)MALLOC(sizeof(AnimationNode));
   new_node->step_func = &prv_animation_step_int32;
   new_node->target = ptr;
   new_node->from = NULL; // assigned on first "step" callback in case of delayed animation
   new_node->to = MALLOC(sizeof(int32_t));
-  (*(int32_t*)new_node->to) = to;
+  (*(int32_t *)new_node->to) = to;
   new_node->start_time = epoch();
   new_node->duration = duration;
   new_node->delay = delay;
@@ -220,6 +219,4 @@ void animation_stop_all(void) {
 }
 
 // Register animation update callback
-void animation_register_update_callback(void *callback) {
-  ani_callback = callback;
-}
+void animation_register_update_callback(void *callback) { ani_callback = callback; }

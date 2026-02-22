@@ -11,7 +11,6 @@
 
 #include "utility.h"
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Compatibility Functions for Aplite
 //
@@ -19,8 +18,8 @@
 #ifdef PBL_SDK_2
 // Calculate an inset grect
 GRect grect_inset(GRect bounds, int16_t inset) {
-  return GRect(bounds.origin.x + inset, bounds.origin.y + inset,
-               bounds.size.w - inset * 2, bounds.size.h - inset * 2);
+  return GRect(bounds.origin.x + inset, bounds.origin.y + inset, bounds.size.w - inset * 2,
+               bounds.size.h - inset * 2);
 }
 
 // Get a point from a center point, angle, and radius
@@ -43,7 +42,7 @@ void graphics_fill_radial(GContext *ctx, GRect bounds, uint8_t fill_mode, int16_
   // calculate points around outside of window to draw cover
   GPoint points[8];
   uint32_t idx = 0;
-  for (int32_t t_angle = angle_start; t_angle < angle_end; t_angle += step){
+  for (int32_t t_angle = angle_start; t_angle < angle_end; t_angle += step) {
     points[idx++] = prv_polar_to_rectangular(center, t_angle, radius);
   }
   // add point at hand position, and in center (to form pie wedge)
@@ -51,10 +50,7 @@ void graphics_fill_radial(GContext *ctx, GRect bounds, uint8_t fill_mode, int16_
   points[idx++] = center;
 
   // fill the covering
-  GPathInfo info = (GPathInfo) {
-    .num_points = idx,
-    .points = points
-  };
+  GPathInfo info = (GPathInfo){.num_points = idx, .points = points};
   GPath *path = gpath_create(&info);
   gpath_draw_filled(ctx, path);
   gpath_destroy(path);
@@ -76,7 +72,6 @@ void graphics_fill_rect_grey(GContext *ctx, GRect rect) {
   graphics_draw_bitmap_in_rect(ctx, grey_bmp, rect);
 }
 #endif
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Convenience Functions
@@ -101,6 +96,4 @@ void *malloc_check(uint16_t size, const char *file, int line) {
 }
 
 // Get current epoch in milliseconds
-uint64_t epoch(void) {
-  return (uint64_t)time(NULL) * 1000 + (uint64_t)time_ms(NULL, NULL);
-}
+uint64_t epoch(void) { return (uint64_t)time(NULL) * 1000 + (uint64_t)time_ms(NULL, NULL); }

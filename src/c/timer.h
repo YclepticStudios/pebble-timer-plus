@@ -10,7 +10,6 @@
 
 #include <pebble.h>
 
-
 //! Get timer value
 //! @param hr A pointer to where to store the hour value of the timer
 //! @param min A pointer to where to store the minute value of the timer

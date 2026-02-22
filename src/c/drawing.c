@@ -7,19 +7,19 @@
 // @date August 29, 2015
 // @bugs No known bugs
 
-#include <pebble.h>
-#include <pebble-scalable/pebble-scalable.h>
 #include "animation.h"
 #include "main.h"
 #include "text_render.h"
 #include "timer.h"
 #include "utility.h"
+#include <pebble-scalable/pebble-scalable.h>
+#include <pebble.h>
 
 // Drawing constants
 
-// Note for future Eric: scalable works by dividing the absolute pixel 
-// value by the original Pebble (144x168) axis size you want to scale to. 
-// [value] / [width or height] * 1000. Your original CIRCLE_RADIUS value 
+// Note for future Eric: scalable works by dividing the absolute pixel
+// value by the original Pebble (144x168) axis size you want to scale to.
+// [value] / [width or height] * 1000. Your original CIRCLE_RADIUS value
 // was 63 for a circle you want to fix inside the x axis, so 63 / 144 * 1000 = 438.
 
 // Progress ring
@@ -32,11 +32,13 @@
 #define ANGLE_CHANGE_ANI_THRESHOLD 348
 #define PROGRESS_ANI_DURATION 250
 #define MAIN_TEXT_CIRCLE_RADIUS (CIRCLE_RADIUS - scl_x(49))
-#define MAIN_TEXT_BOUNDS GRect(-MAIN_TEXT_CIRCLE_RADIUS, -MAIN_TEXT_CIRCLE_RADIUS / 2,\
- MAIN_TEXT_CIRCLE_RADIUS * 2, MAIN_TEXT_CIRCLE_RADIUS)
+#define MAIN_TEXT_BOUNDS                                                                           \
+  GRect(-MAIN_TEXT_CIRCLE_RADIUS, -MAIN_TEXT_CIRCLE_RADIUS / 2, MAIN_TEXT_CIRCLE_RADIUS * 2,       \
+        MAIN_TEXT_CIRCLE_RADIUS)
 #define MAIN_TEXT_CIRCLE_RADIUS_EDIT (CIRCLE_RADIUS - scl_x(118))
-#define MAIN_TEXT_BOUNDS_EDIT GRect(-MAIN_TEXT_CIRCLE_RADIUS_EDIT, \
- -MAIN_TEXT_CIRCLE_RADIUS_EDIT / 2, MAIN_TEXT_CIRCLE_RADIUS_EDIT * 2, MAIN_TEXT_CIRCLE_RADIUS_EDIT)
+#define MAIN_TEXT_BOUNDS_EDIT                                                                      \
+  GRect(-MAIN_TEXT_CIRCLE_RADIUS_EDIT, -MAIN_TEXT_CIRCLE_RADIUS_EDIT / 2,                          \
+        MAIN_TEXT_CIRCLE_RADIUS_EDIT * 2, MAIN_TEXT_CIRCLE_RADIUS_EDIT)
 // Main Text
 #define TEXT_FIELD_COUNT 5
 #define TEXT_FIELD_EDIT_SPACING scl_x(49)
@@ -61,24 +63,23 @@ typedef enum {
 
 // Main drawing state description, used to determine changes in state
 typedef struct {
-  ControlMode   control_mode;   //< The timer control mode at that state
-  uint8_t       hr_digits;      //< The number of digits used by the hours
-  uint8_t       min_digits;     //< The number of digits used by the minutes
+  ControlMode control_mode; //< The timer control mode at that state
+  uint8_t hr_digits;        //< The number of digits used by the hours
+  uint8_t min_digits;       //< The number of digits used by the minutes
 } DrawState;
 
 // Main data
 static struct {
-  Layer       *layer;             //< The main layer being drawn on, used to force a refresh
-  int32_t     progress_angle;     //< The current angle of the progress ring
-  DrawState   draw_state;         //< An arbitrary description of the main drawing state
-  GRect       text_fields[TEXT_FIELD_COUNT];      //< The number of text fields (hr : min : sec)
-  GRect       focus_field;        //< The selection field layer
-  GColor      fore_color;         //< Color of text
-  GColor      mid_color;          //< Color of center
-  GColor      ring_color;         //< Color of ring
-  GColor      back_color;         //< Color behind ring
+  Layer *layer;                        //< The main layer being drawn on, used to force a refresh
+  int32_t progress_angle;              //< The current angle of the progress ring
+  DrawState draw_state;                //< An arbitrary description of the main drawing state
+  GRect text_fields[TEXT_FIELD_COUNT]; //< The number of text fields (hr : min : sec)
+  GRect focus_field;                   //< The selection field layer
+  GColor fore_color;                   //< Color of text
+  GColor mid_color;                    //< Color of center
+  GColor ring_color;                   //< Color of ring
+  GColor back_color;                   //< Color behind ring
 } drawing_data;
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Focus Layer
@@ -98,7 +99,7 @@ static void prv_focus_layer_update_state(Layer *layer, GRect hr_bounds, GRect mi
     bounds.size.h = sec_bounds.size.h / 2;
     // animate the focus layer
     animation_grect_start(&drawing_data.focus_field, bounds, FOCUS_FIELD_ANI_DURATION, 0,
-      CurveSinEaseOut);
+                          CurveSinEaseOut);
   } else {
     // get final bounds when in editing mode
     if (main_get_control_mode() == ControlModeEditHr) {
@@ -112,7 +113,7 @@ static void prv_focus_layer_update_state(Layer *layer, GRect hr_bounds, GRect mi
     bounds = grect_inset(bounds, GEdgeInsets1(-FOCUS_FIELD_BORDER));
     // animate the focus field to those bounds
     animation_grect_start(&drawing_data.focus_field, bounds, FOCUS_FIELD_ANI_DURATION, 0,
-      CurveSinEaseOut);
+                          CurveSinEaseOut);
   }
 }
 
@@ -125,7 +126,6 @@ static void prv_render_focus_layer(GContext *ctx) {
   graphics_fill_rect(ctx, drawing_data.focus_field, 0, GCornerNone);
 #endif
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Sub Texts
@@ -146,8 +146,8 @@ static void prv_render_header_text(GContext *ctx, GRect bounds) {
   } else {
     buff = "Timer";
   }
-  graphics_draw_text(ctx, buff, scl_get_font(ScalableFontLabel), bounds,
-    GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+  graphics_draw_text(ctx, buff, scl_get_font(ScalableFontLabel), bounds, GTextOverflowModeFill,
+                     GTextAlignmentCenter, NULL);
 }
 
 // Draw footer text
@@ -169,10 +169,9 @@ static void prv_render_footer_text(GContext *ctx, GRect bounds) {
   struct tm end_tm = *localtime(&end_time);
   strftime(buff, sizeof(buff), clock_is_24h_style() ? "%k:%M" : "%l:%M", &end_tm);
   // draw text
-  graphics_draw_text(ctx, buff, scl_get_font(ScalableFontTime), bounds,
-    GTextOverflowModeFill, GTextAlignmentCenter, NULL);
+  graphics_draw_text(ctx, buff, scl_get_font(ScalableFontTime), bounds, GTextOverflowModeFill,
+                     GTextAlignmentCenter, NULL);
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Main Text
@@ -198,8 +197,8 @@ static void prv_main_text_update_state(Layer *layer) {
   // calculate new sizes for all text elements
   char tot_buff[8];
   snprintf(tot_buff, sizeof(tot_buff), "%s%s%s%s%s", buff[0], buff[1], buff[2], buff[3], buff[4]);
-  uint16_t font_size = text_render_get_max_font_size(tot_buff, edit_mode ? MAIN_TEXT_BOUNDS_EDIT :
-    MAIN_TEXT_BOUNDS);
+  uint16_t font_size =
+      text_render_get_max_font_size(tot_buff, edit_mode ? MAIN_TEXT_BOUNDS_EDIT : MAIN_TEXT_BOUNDS);
   // calculate new size for each text element
   GRect total_bounds = GRectZero;
   GRect field_bounds[TEXT_FIELD_COUNT];
@@ -222,8 +221,8 @@ static void prv_main_text_update_state(Layer *layer) {
   }
   // animate to new positions
   for (uint8_t ii = 0; ii < TEXT_FIELD_COUNT; ii++) {
-    animation_grect_start(&drawing_data.text_fields[ii], field_bounds[ii],
-      TEXT_FIELD_ANI_DURATION, 0, CurveSinEaseOut);
+    animation_grect_start(&drawing_data.text_fields[ii], field_bounds[ii], TEXT_FIELD_ANI_DURATION,
+                          0, CurveSinEaseOut);
   }
 
   // update the focus layers
@@ -257,7 +256,6 @@ static void prv_animation_update_callback(void) {
   layer_mark_dirty(drawing_data.layer);
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Progress Ring
 //
@@ -288,12 +286,11 @@ static void prv_progress_ring_update(void) {
   animation_stop(&drawing_data.progress_angle);
   if (abs(new_angle - drawing_data.progress_angle) >= ANGLE_CHANGE_ANI_THRESHOLD) {
     animation_int32_start(&drawing_data.progress_angle, new_angle, PROGRESS_ANI_DURATION, 0,
-      CurveSinEaseOut);
+                          CurveSinEaseOut);
   } else {
     drawing_data.progress_angle = new_angle;
   }
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Drawing State Changes
@@ -305,10 +302,10 @@ static bool prv_text_state_compare(DrawState text_state_1, DrawState text_state_
          ((text_state_1.control_mode != ControlModeCounting &&     // if in edit mode
            ((text_state_1.hr_digits && text_state_2.hr_digits) ||
             (!text_state_1.hr_digits && !text_state_2.hr_digits))) ||
-          (text_state_1.control_mode == ControlModeCounting &&     // if in counting mode
+          (text_state_1.control_mode == ControlModeCounting && // if in counting mode
            text_state_1.hr_digits == text_state_2.hr_digits &&
            text_state_1.min_digits == text_state_2.min_digits)) &&
-          text_state_2.hr_digits < 3; // on first start hr is set to 99 to force refresh
+         text_state_2.hr_digits < 3; // on first start hr is set to 99 to force refresh
 }
 
 // Create a state description
@@ -316,10 +313,10 @@ static DrawState prv_draw_state_create(void) {
   // get states
   uint16_t hr, min, sec;
   timer_get_time_parts(&hr, &min, &sec);
-  return (DrawState) {
-    .control_mode = main_get_control_mode(),
-    .hr_digits = (uint8_t)(hr > 0) + (uint8_t)(hr > 9) + (uint8_t)(hr > 99),
-    .min_digits = (uint8_t)(min > 0) + (uint8_t)(min > 9),
+  return (DrawState){
+      .control_mode = main_get_control_mode(),
+      .hr_digits = (uint8_t)(hr > 0) + (uint8_t)(hr > 9) + (uint8_t)(hr > 99),
+      .min_digits = (uint8_t)(min > 0) + (uint8_t)(min > 9),
   };
 }
 
@@ -333,7 +330,6 @@ static void prv_update_draw_state(Layer *layer) {
     prv_main_text_update_state(layer);
   }
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // API Implementation
@@ -358,12 +354,12 @@ void drawing_start_bounce_animation(bool upward) {
   animation_grect_start(txt_rect, rect_to, FOCUS_BOUNCE_ANI_DURATION, 0, CurveSinEaseIn);
   rect_to.origin.y = drawing_data.text_fields[1].origin.y;
   animation_grect_start(txt_rect, rect_to, FOCUS_BOUNCE_ANI_SETTLE_DURATION,
-    FOCUS_BOUNCE_ANI_DURATION, CurveSinEaseOut);
+                        FOCUS_BOUNCE_ANI_DURATION, CurveSinEaseOut);
   // get focus layer desired bounds
   GRect focus_bounds = drawing_data.text_fields[0];
   if (main_get_control_mode() == ControlModeEditMin) {
     focus_bounds = drawing_data.text_fields[2];
-  } else if (main_get_control_mode() == ControlModeEditSec){
+  } else if (main_get_control_mode() == ControlModeEditSec) {
     focus_bounds = drawing_data.text_fields[4];
   }
   focus_bounds.origin.y = drawing_data.text_fields[3].origin.y;
@@ -373,24 +369,23 @@ void drawing_start_bounce_animation(bool upward) {
   rect_to.origin.y += (upward ? -1 : 0) * FOCUS_BOUNCE_ANI_HEIGHT;
   rect_to.size.h += FOCUS_BOUNCE_ANI_HEIGHT;
   animation_grect_start(&drawing_data.focus_field, rect_to, FOCUS_BOUNCE_ANI_DURATION,
-    FOCUS_BOUNCE_ANI_DURATION, CurveSinEaseIn);
+                        FOCUS_BOUNCE_ANI_DURATION, CurveSinEaseIn);
   // return to original position
   animation_grect_start(&drawing_data.focus_field, focus_bounds, FOCUS_BOUNCE_ANI_SETTLE_DURATION,
-    FOCUS_BOUNCE_ANI_DURATION * 2, CurveSinEaseOut);
+                        FOCUS_BOUNCE_ANI_DURATION * 2, CurveSinEaseOut);
 }
 
 // Create reset animation for focus layer
 void drawing_start_reset_animation(void) {
   // create shrunken focus bounds and animate to new bounds
   GRect focus_to_bounds;
-  focus_to_bounds = grect_inset(drawing_data.focus_field,
-    GEdgeInsets1(FOCUS_FIELD_SHRINK_INSET));
+  focus_to_bounds = grect_inset(drawing_data.focus_field, GEdgeInsets1(FOCUS_FIELD_SHRINK_INSET));
   // shrinking animation
-  animation_grect_start(&drawing_data.focus_field, focus_to_bounds,
-    FOCUS_FIELD_SHRINK_DURATION, 0, CurveLinear);
+  animation_grect_start(&drawing_data.focus_field, focus_to_bounds, FOCUS_FIELD_SHRINK_DURATION, 0,
+                        CurveLinear);
   // return animation back to original size
   animation_grect_start(&drawing_data.focus_field, drawing_data.focus_field,
-    FOCUS_FIELD_SHRINK_DURATION, BUTTON_HOLD_RESET_MS, CurveLinear);
+                        FOCUS_FIELD_SHRINK_DURATION, BUTTON_HOLD_RESET_MS, CurveLinear);
 }
 
 // Render everything to the screen
@@ -447,22 +442,24 @@ void drawing_initialize(Layer *layer) {
   }
   drawing_data.focus_field.size = GSizeZero;
   // set initial draw state to something which guaranties a refresh
-  drawing_data.draw_state = (DrawState) {
-    .hr_digits = 99,
+  drawing_data.draw_state = (DrawState){
+      .hr_digits = 99,
   };
   // set fonts
   font_gothic_24_bold = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
   font_gothic_28_bold = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
+  // clang-format off
   scl_set_fonts(ScalableFontLabel, {
     .o = font_gothic_24_bold, // Everything else
     .e = font_gothic_28_bold, // Emery (Pebble Time 2*)
-    .g = font_gothic_28_bold // Gabbro (Pebble Round 2)
+    .g = font_gothic_28_bold, // Gabbro (Pebble Round 2)
   });
   scl_set_fonts(ScalableFontTime, {
     .o = font_gothic_28_bold, // Everything else
     .e = font_gothic_28_bold, // Emery (Pebble Time 2*)
-    .g = font_gothic_28_bold // Gabbro (Pebble Round 2)
+    .g = font_gothic_28_bold, // Gabbro (Pebble Round 2)
   });
+  // clang-format on
   // set the colors
   drawing_data.fore_color = GColorBlack;
   drawing_data.mid_color = PBL_IF_COLOR_ELSE(GColorMintGreen, GColorWhite);
@@ -473,6 +470,4 @@ void drawing_initialize(Layer *layer) {
 }
 
 // Destroy the singleton drawing data
-void drawing_terminate(void) {
-  animation_stop_all();
-}
+void drawing_terminate(void) { animation_stop_all(); }

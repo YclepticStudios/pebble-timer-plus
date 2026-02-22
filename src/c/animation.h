@@ -10,8 +10,8 @@
 //! @bugs No known bugs
 
 #pragma once
-#include <pebble.h>
 #include "interpolation.h"
+#include <pebble.h>
 
 //! Animate a GRect by its pointer
 //! @param prt A pointer to the GRect to animate
