@@ -34,6 +34,12 @@
           "name": "IMAGE_ICON",
           "memoryFormat": "1Bit",
           "menuIcon": true
+        },
+        {
+          "type": "font",
+          "name": "BEBAS_FONT_35",
+          "file": "fonts/bebas_neue_regular.ttf",
+          "characterRegex": "[0-9: ]"
         }
       ]
     }

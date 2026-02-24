@@ -51,13 +51,19 @@
 #define FOCUS_BOUNCE_ANI_HEIGHT scl_y(48)
 #define FOCUS_BOUNCE_ANI_DURATION 70
 #define FOCUS_BOUNCE_ANI_SETTLE_DURATION 140
-// Header Text
+// Header Text (different font on Emery and Gabbro)
+#if defined(PBL_PLATFORM_APLITE) || defined(PBL_PLATFORM_BASALT) || defined(PBL_PLATFORM_CHALK) || \
+    defined(PBL_PLATFORM_DIORITE) || defined(PBL_PLATFORM_FLINT)
 #define HEADER_Y_OFFSET scl_y(30)
-#define FOOTER_Y_OFFSET scl_y(110)
-#define FOOTER_WIDTH (CIRCLE_RADIUS - scl_y(5))
+#define FOOTER_Y_OFFSET scl_y(140)
+#else
+#define HEADER_Y_OFFSET scl_y(53)
+#define FOOTER_Y_OFFSET scl_y(160)
+#endif
 // Fonts
 typedef enum {
   ScalableFontLabel,
+  ScalableFontTime,
 } ScalableFontIds;
 
 // Main drawing state description, used to determine changes in state
@@ -153,10 +159,10 @@ static void prv_render_header_text(GContext *ctx, GRect bounds) {
 static void prv_render_footer_text(GContext *ctx, GRect bounds) {
   // calculate bounds
   bounds.origin = grect_center_point(&bounds);
-  bounds.size.w = FOOTER_WIDTH;
-  bounds.size.h = CIRCLE_RADIUS - FOOTER_Y_OFFSET;
-  bounds.origin.x -= bounds.size.w / 2;
+  bounds.origin.x -= CIRCLE_RADIUS;
   bounds.origin.y += FOOTER_Y_OFFSET;
+  bounds.size.w = CIRCLE_RADIUS * 2;
+  bounds.size.h = CIRCLE_RADIUS - FOOTER_Y_OFFSET;
   // calculate text
   char buff[10];
   // in timer mode, get time
@@ -166,9 +172,15 @@ static void prv_render_footer_text(GContext *ctx, GRect bounds) {
   }
   // format to readable time
   struct tm end_tm = *localtime(&end_time);
-  strftime(buff, sizeof(buff), clock_is_24h_style() ? "%k:%M" : "%l:%M", &end_tm);
+  strftime(buff, sizeof(buff), clock_is_24h_style() ? "%H:%M" : "%I:%M", &end_tm);
+  if (buff[0] == '0') { // Strip leading zero
+    for (uint8_t ii = 1; ii < ARRAY_LENGTH(buff); ii++) {
+      buff[ii - 1] = buff[ii];
+    }
+  }
   // draw text
-  text_render_draw_scalable_text(ctx, buff, bounds);
+  graphics_draw_text(ctx, buff, scl_get_font(ScalableFontTime), bounds, GTextOverflowModeFill,
+                     GTextAlignmentCenter, NULL);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,7 +196,7 @@ static void prv_main_text_update_state(Layer *layer) {
   uint16_t hr, min, sec;
   timer_get_time_parts(&hr, &min, &sec);
   // convert to strings
-  char buff[TEXT_FIELD_COUNT][4] = {{'\0'}};
+  char buff[TEXT_FIELD_COUNT][6] = {{'\0'}};
   if (hr) {
     snprintf(buff[0], sizeof(buff[0]), edit_mode ? "%02d" : "%d", hr);
   }
@@ -193,7 +205,7 @@ static void prv_main_text_update_state(Layer *layer) {
   snprintf(buff[3], sizeof(buff[3]), "%s", edit_mode ? "\0" : ":");
   snprintf(buff[4], sizeof(buff[4]), "%02d", sec);
   // calculate new sizes for all text elements
-  char tot_buff[8];
+  char tot_buff[26];
   snprintf(tot_buff, sizeof(tot_buff), "%s%s%s%s%s", buff[0], buff[1], buff[2], buff[3], buff[4]);
   uint16_t font_size =
       text_render_get_max_font_size(tot_buff, edit_mode ? MAIN_TEXT_BOUNDS_EDIT : MAIN_TEXT_BOUNDS);
@@ -234,7 +246,7 @@ static void prv_render_main_text(GContext *ctx, GRect bounds) {
   timer_get_time_parts(&hr, &min, &sec);
   // convert to strings
   bool edit_mode = main_get_control_mode() != ControlModeCounting;
-  char buff[TEXT_FIELD_COUNT][4] = {{'\0'}};
+  char buff[TEXT_FIELD_COUNT][6] = {{'\0'}};
   if (hr) {
     snprintf(buff[0], sizeof(buff[0]), edit_mode ? "%02d" : "%d", hr);
   }
@@ -260,9 +272,10 @@ static void prv_animation_update_callback(void) {
 
 // Draw progress ring
 static void prv_render_progress_ring(GContext *ctx, GRect bounds) {
+  const int16_t PADDING = 1;
   // calculate ring bounds size
   int32_t gr_angle = atan2_lookup(bounds.size.h, bounds.size.w);
-  int32_t radius = (bounds.size.h / 2) * TRIG_MAX_RATIO / sin_lookup(gr_angle);
+  int32_t radius = (int32_t)bounds.size.h * TRIG_MAX_RATIO / sin_lookup(gr_angle) / 2 + PADDING;
   bounds.origin.x += bounds.size.w / 2 - radius;
   bounds.origin.y += bounds.size.h / 2 - radius;
   bounds.size.w = bounds.size.h = radius * 2;
@@ -446,11 +459,17 @@ void drawing_initialize(Layer *layer) {
   // set fonts
   GFont font_gothic_24_bold = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
   GFont font_gothic_28_bold = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
+  GFont font_bebas_35_bold = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_BEBAS_FONT_35));
   // clang-format off
   scl_set_fonts(ScalableFontLabel, {
     .o = font_gothic_24_bold, // Everything else
     .e = font_gothic_28_bold, // Emery (Pebble Time 2*)
     .g = font_gothic_28_bold, // Gabbro (Pebble Round 2)
+  });
+  scl_set_fonts(ScalableFontTime, {
+    .o = font_gothic_28_bold, // Everything else
+    .e = font_bebas_35_bold, // Emery (Pebble Time 2*)
+    .g = font_bebas_35_bold, // Gabbro (Pebble Round 2)
   });
   // clang-format on
   // set the colors
