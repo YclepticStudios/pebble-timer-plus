@@ -82,8 +82,7 @@ static void prv_draw_character(GContext *ctx, GPath *path, char character, int16
     path->points[ii].y = LECO_POINTS_Y[idx] * font_size / LECO_HEIGHT;
   }
   // calculate the next cursor position
-  int16_t next_x =
-      path->offset.x + (LECO_WIDTHS[char_idx] + LECO_KERNING) * font_size / LECO_HEIGHT;
+  int16_t next_x = path->offset.x + LECO_WIDTHS[char_idx] * font_size / LECO_HEIGHT;
   // offset to half the character and draw
   path->offset.x = (path->offset.x + next_x) / 2;
   if (character != ':') {
@@ -103,6 +102,8 @@ static void prv_draw_character(GContext *ctx, GPath *path, char character, int16
 
 // Draw the LECO font onto a drawing context at a certain font size
 static void prv_draw_text(GContext *ctx, char *buff, int16_t font_size, GPoint position) {
+  const int16_t kerning = LECO_KERNING * font_size / LECO_HEIGHT;
+  position.x += (kerning + 1) / 2; // Round up to offset truncation
   // initialize the reusable graphics path
   GPoint point_data[LECO_MAX_POINTS];
   GPath path = (GPath){
@@ -112,6 +113,7 @@ static void prv_draw_text(GContext *ctx, char *buff, int16_t font_size, GPoint p
   // loop over characters in buff until NUL character is reached
   for (uint8_t ii = 0; buff[ii] != '\0'; ii++) {
     prv_draw_character(ctx, &path, buff[ii], font_size);
+    path.offset.x += kerning;
   }
 }
 
