@@ -207,7 +207,7 @@ static void prv_main_text_update_state(Layer *layer) {
   // calculate new sizes for all text elements
   char tot_buff[26];
   snprintf(tot_buff, sizeof(tot_buff), "%s%s%s%s%s", buff[0], buff[1], buff[2], buff[3], buff[4]);
-  uint16_t font_size =
+  int16_t font_size =
       text_render_get_max_font_size(tot_buff, edit_mode ? MAIN_TEXT_BOUNDS_EDIT : MAIN_TEXT_BOUNDS);
   // calculate new size for each text element
   GRect total_bounds = GRectZero;
