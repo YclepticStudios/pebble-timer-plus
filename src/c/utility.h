@@ -33,19 +33,21 @@ void graphics_fill_radial(GContext *ctx, GRect bounds, uint8_t fill_mode, int16_
 void graphics_fill_rect_grey(GContext *ctx, GRect rect);
 #endif
 
-//! Terminate program if null pointer
-//! @param ptr The pointer to check for null
-#define ASSERT(ptr) assert(ptr, __FILE__, __LINE__)
+//! Standard assertion definition
+#ifdef NDEBUG
+#define ASSERT(expression) ((void)0)
+#else
+#define ASSERT(expression)                                                                         \
+  if (!(expression)) {                                                                             \
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Assertion failed: %s (%s:%d)", #expression, __FILE__, __LINE__); \
+    void (*exit)(void) = NULL;                                                                     \
+    exit();                                                                                        \
+  }
+#endif
 
 //! Malloc with failure check
 //! @param size The size of the memory to allocate
 #define MALLOC(size) malloc_check(size, __FILE__, __LINE__)
-
-//! Terminate program if null pointer
-//! @param ptr The pointer to check for null
-//! @param file The name of the file it is called from
-//! @param line The line number it is called from
-void assert(void *ptr, const char *file, int line);
 
 //! Malloc with failure check
 //! @param size The size of the memory to allocate

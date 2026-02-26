@@ -15,19 +15,19 @@
 //! Gets the bounds of a certain text string at a certain font size
 //! @param buff The text string to measure
 //! @param font_size The font size to measure the string at
-GRect text_render_get_content_bounds(char *buff, uint16_t font_size);
+GRect text_render_get_content_bounds(char *buff, int16_t font_size);
 
 //! Gets the maximum font size of a certain text string within a certain bounds
 //! @param buff The text string to measure
 //! @param size The size of the bounds within which to measure the maximum size
-uint16_t text_render_get_max_font_size(char *buff, GRect size);
+int16_t text_render_get_max_font_size(char *buff, GRect size);
 
 //! Renders the LECO font onto a drawing context at a certain font size
 //! @param ctx The GContext onto which to draw the text
 //! @param buff The text buffer to draw
 //! @param font_size The font size at which to draw the text
 //! @param position The upper right corner of where to begin drawing from
-void text_render_draw_text(GContext *ctx, char *buff, uint16_t font_size, GPoint position);
+void text_render_draw_text(GContext *ctx, char *buff, int16_t font_size, GPoint position);
 
 //! Renders the LECO font at the largest possible size that will fit within a certain size rectangle
 //! @param ctx The GContext onto which to draw the text

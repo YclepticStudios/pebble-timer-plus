@@ -77,21 +77,15 @@ void graphics_fill_rect_grey(GContext *ctx, GRect rect) {
 // Convenience Functions
 //
 
-// Check pointer for null and assert if true
-void assert(void *ptr, const char *file, int line) {
-  if (ptr) {
-    return;
-  }
-  APP_LOG(APP_LOG_LEVEL_ERROR, "Invalid pointer: (%s:%d)", file, line);
-  // assert
-  void (*exit)(void) = NULL;
-  exit();
-}
-
 // Malloc with built in pointer check
 void *malloc_check(uint16_t size, const char *file, int line) {
   void *ptr = malloc(size);
-  assert(ptr, file, line);
+  if (ptr == NULL) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Invalid pointer: (%s:%d)", file, line);
+    // assert
+    void (*exit)(void) = NULL;
+    exit();
+  }
   return ptr;
 }
 

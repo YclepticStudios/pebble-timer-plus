@@ -10,118 +10,120 @@
 // @bug No known bugs
 
 #include "text_render.h"
+#include "utility.h"
 #include <pebble.h>
-
-// Constants
-static const uint16_t CHARACTER_DEFINITION_HEIGHT = 255;
-static const uint16_t CHARACTER_DEFINITION_KERNING = 50;
-static const uint8_t STRING_MAX_LENGTH = 64;
-
-// Structure for the data contained in one font character
-typedef struct {
-  char character;     //< The character being represented
-  uint8_t char_width; //< The width of the character (compare to
-  uint8_t num_points; //< The number of points in that character
-  GPoint points[14];  //< The array of points for that character
-} Character;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Font Data
 //
 
-// This is the data for the LECO font. Each character is composed of an array of points,
-// that, when drawn filled, will form the character
-// clang-format off
-static Character LECO_0 = {'0', 178, 10, {{0, 0}, {178, 0}, {178, 255}, {0, 255}, {0, 0},
-                                          {50, 0}, {50, 205}, {128, 205}, {128, 50}, {0, 50}}};
-static Character LECO_1 = {'1', 178, 10, {{0, 0}, {114, 0}, {114, 205}, {178, 205}, {178, 255},
-                                          {0, 255}, {0, 205}, {64, 205}, {64, 50}, {0, 50}}};
-static Character LECO_2 = {'2', 178, 14, {{0, 68}, {0, 0}, {178, 0}, {178, 153}, {50, 153},
-                                          {50, 205}, {178, 205}, {178, 255}, {0, 255}, {0, 103},
-                                          {128, 103}, {128, 50}, {50, 50}, {50, 68}}};
-static Character LECO_3 = {'3', 178, 12, {{0, 0}, {178, 0}, {178, 255}, {0, 255}, {0, 205},
-                                          {128, 205}, {128, 153}, {26, 153}, {26, 103}, {128, 103},
-                                          {128, 50}, {0, 50}}};
-static Character LECO_4 = {'4', 178, 10, {{0, 0}, {0, 153}, {128, 153}, {128, 255}, {178, 255},
-                                          {178, 0}, {128, 0}, {128, 103}, {50, 103}, {50, 0}}};
-static Character LECO_5 = {'5', 178, 14, {{178, 0},{0, 0}, {0, 153}, {128, 153}, {128, 205},
-                                          {50, 205}, {50, 187}, {0, 187}, {0, 255}, {178, 255},
-                                          {178, 103}, {50, 103}, {50, 50}, {178, 50}}};
-static Character LECO_6 = {'6', 178, 12, {{178, 0}, {0, 0}, {0, 255}, {178, 255}, {178, 103},
-                                          {25, 103}, {25, 153}, {128, 153}, {128, 205}, {50, 205},
-                                          {50, 50}, {178, 50}}};
-static Character LECO_7 = {'7', 178, 8, {{0, 76}, {0, 0}, {178, 0}, {178, 255}, {128, 255},
-                                         {128, 50}, {50, 50}, {50, 76}}};
-static Character LECO_8 = {'8', 178, 14, {{0, 153}, {0, 0}, {178, 0}, {178, 255}, {0, 255},
-                                          {0, 103}, {163, 103}, {163, 153}, {50, 153}, {50, 205},
-                                          {128, 205}, {128, 50}, {50, 50}, {50, 153}}};
-static Character LECO_9 = {'9', 178, 12, {{0, 255}, {178, 255}, {178, 0}, {0, 0}, {0, 153},
-                                          {163, 153}, {163, 103}, {50, 103}, {50, 50}, {128, 50},
-                                          {128, 205}, {0, 205}}};
-static Character LECO_C = {':', 50, 4, {{0, 50}, {50, 50}, {50, 100}, {0, 100}}};
-static Character LECO_P = {'.', 50, 4, {{0, 205}, {50, 205}, {50, 255}, {0, 255}}};
-// clang-format on
-
-static Character *LECO_CHARS[] = {&LECO_0, &LECO_1, &LECO_2, &LECO_3, &LECO_4, &LECO_5,
-                                  &LECO_6, &LECO_7, &LECO_8, &LECO_9, &LECO_C, &LECO_P};
+// general dimensions
+static const int8_t LECO_MAX_POINTS = 14; //< Maximum number of points in a single character
+static const int8_t LECO_HEIGHT = 20;     //< Font size of raw character data
+static const int8_t LECO_KERNING = 4;     //< Spacing between characters
+// unscaled centered point data for all LECO font characters
+static const int8_t LECO_POINTS_X[] = {
+    -7, +7, +7, -7, -7, -3, -3, +3, +3, -3,                 // 0
+    -7, +2, +2, +7, +7, -7, -7, -2, -2, -7,                 // 1
+    -7, +7, +7, -3, -3, +7, +7, -7, -7, +3, +3, -3, -3, -7, // 2
+    -7, +7, +7, -7, -7, +3, +3, -5, -5, +3, +3, -7,         // 3
+    -7, -3, -3, +3, +3, +7, +7, +3, +3, -7,                 // 4
+    -7, +7, +7, -3, -3, +7, +7, -7, -7, -3, -3, +3, +3, -7, // 5
+    +7, -3, -3, +3, +3, -5, -5, +7, +7, -7, -7, +7,         // 6
+    -7, +7, +7, +3, +3, -3, -3, -7,                         // 7
+    -7, -7, +7, +7, -7, -7, +5, +5, -3, -3, +3, +3, -3, -3, // 8
+    -7, +3, +3, -3, -3, +5, +5, -7, -7, +7, +7, -7,         // 9
+    -2, +2, +2, -2,                                         // :
+};
+static const int8_t LECO_POINTS_Y[] = {
+    -10, -10, +10, +10, -10, -10, +6,  +6,  -6,  -6,                    // 0
+    -10, -10, +6,  +6,  +10, +10, +6,  +6,  -6,  -6,                    // 1
+    -10, -10, +2,  +2,  +6,  +6,  +10, +10, -2,  -2,  -6,  -6,  -4, -4, // 2
+    -10, -10, +10, +10, +6,  +6,  +2,  +2,  -2,  -2,  -6,  -6,          // 3
+    -10, -10, -2,  -2,  -10, -10, +10, +10, +2,  +2,                    // 4
+    -10, -10, -6,  -6,  -2,  -2,  +10, +10, +4,  +4,  +6,  +6,  +2, +2, // 5
+    -6,  -6,  +6,  +6,  +2,  +2,  -2,  -2,  +10, +10, -10, -10,         // 6
+    -10, -10, +10, +10, -6,  -6,  -4,  -4,                              // 7
+    +2,  -10, -10, +10, +10, -2,  -2,  +2,  +2,  +6,  +6,  -6,  -6, +2, // 8
+    +6,  +6,  -6,  -6,  -2,  -2,  +2,  +2,  -10, -10, +10, +10,         // 9
+    -2,  -2,  +2,  +2,                                                  // :
+};
+static const int8_t LECO_COLON_OFFSETS[] = {-4, 8};
+// offsets into point data for the start of every character padded with the count
+static const uint8_t LECO_OFFSETS[] = {0, 10, 20, 34, 46, 56, 70, 82, 90, 104, 116, 120};
+// width of each character
+static const int8_t LECO_WIDTHS[] = {14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 4};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Private Functions
 //
 
-static int16_t prv_scale_character_point(int16_t value, int16_t char_size, int16_t font_size) {
-  int16_t centered_value = value - (char_size / 2);
-  int16_t scaled_value = centered_value * font_size / CHARACTER_DEFINITION_HEIGHT;
-  int16_t offset_value = scaled_value + (char_size * font_size / CHARACTER_DEFINITION_HEIGHT / 2);
-  return offset_value;
+// Obtain the character data index from the character value
+static uint8_t prv_get_character_index(char character) {
+  ASSERT(character >= 48 && character <= 58 && "Invalid character");
+  return character - 48;
 }
 
-// Draw a LECO character
-static void prv_draw_character(GContext *ctx, GPath *path, Character *leco_char, uint16_t font_size,
-                               GPoint position) {
-  // set the path params
-  path->num_points = leco_char->num_points;
-  memcpy(path->points, leco_char->points, sizeof(leco_char->points));
-  for (uint8_t kk = 0; kk < leco_char->num_points; kk++) {
-    path->points[kk].x =
-        prv_scale_character_point(path->points[kk].x, leco_char->char_width, font_size);
-    path->points[kk].y =
-        prv_scale_character_point(path->points[kk].y, CHARACTER_DEFINITION_HEIGHT, font_size);
-  }
-  path->offset = position;
+// Draws the path both filled and outlined to obtain a better rasterization
+static void prv_gpath_draw_precise(GContext *ctx, GPath *path) {
   gpath_draw_filled(ctx, path);
   gpath_draw_outline(ctx, path);
 }
 
+// Draw a LECO character
+static void prv_draw_character(GContext *ctx, GPath *path, char character, int16_t font_size) {
+  uint8_t char_idx = prv_get_character_index(character);
+  uint8_t start_offset = LECO_OFFSETS[char_idx];
+  uint8_t end_offset = LECO_OFFSETS[char_idx + 1];
+  // populate the path data points
+  path->num_points = end_offset - start_offset;
+  for (uint8_t ii = 0, idx = start_offset; idx < end_offset; ii++, idx++) {
+    path->points[ii].x = LECO_POINTS_X[idx] * font_size / LECO_HEIGHT;
+    path->points[ii].y = LECO_POINTS_Y[idx] * font_size / LECO_HEIGHT;
+  }
+  // calculate the next cursor position
+  int16_t next_x = path->offset.x + LECO_WIDTHS[char_idx] * font_size / LECO_HEIGHT;
+  // offset to half the character and draw
+  path->offset.x = (path->offset.x + next_x) / 2;
+  if (character != ':') {
+    prv_gpath_draw_precise(ctx, path);
+  } else {
+    // colon needs special handling, draw the dot twice with different offsets
+    int16_t old_y = path->offset.y;
+    path->offset.y = old_y + LECO_COLON_OFFSETS[0] * font_size / LECO_HEIGHT;
+    prv_gpath_draw_precise(ctx, path);
+    path->offset.y = old_y + LECO_COLON_OFFSETS[1] * font_size / LECO_HEIGHT;
+    prv_gpath_draw_precise(ctx, path);
+    path->offset.y = old_y;
+  }
+  // restore the next cursor position
+  path->offset.x = next_x;
+}
+
 // Draw the LECO font onto a drawing context at a certain font size
-static void prv_draw_text(GContext *ctx, char *buff, uint16_t font_size, GPoint position) {
-  // graphics path to draw
-  GPoint cur_origin = position;
-  cur_origin.x += (CHARACTER_DEFINITION_KERNING * font_size / CHARACTER_DEFINITION_HEIGHT) / 2;
+static void prv_draw_text(GContext *ctx, char *buff, int16_t font_size, GPoint position) {
+  const int16_t kerning = LECO_KERNING * font_size / LECO_HEIGHT;
+  position.x += (kerning + 1) / 2; // Round up to offset truncation
+  // initialize the reusable graphics path
+  GPoint point_data[LECO_MAX_POINTS];
   GPath path = (GPath){
-      .points = (GPoint *)malloc(sizeof(LECO_CHARS[0]->points)),
-      .offset = cur_origin,
+      .points = point_data,
+      .offset = position,
   };
   // loop over characters in buff until NUL character is reached
-  for (uint8_t ii = 0; ii < STRING_MAX_LENGTH && buff[ii] != '\0'; ii++) {
-    // find that character in the array of data
-    for (uint8_t jj = 0; jj < ARRAY_LENGTH(LECO_CHARS); jj++) {
-      if (LECO_CHARS[jj]->character == buff[ii]) {
-        // draw the character
-        prv_draw_character(ctx, &path, LECO_CHARS[jj], font_size, cur_origin);
-        // draw an extra spot for the colon (colon only contains data for top dot)
-        if (LECO_CHARS[jj]->character == ':') {
-          prv_draw_character(ctx, &path, &LECO_P, font_size, cur_origin);
-        }
-        // recalculate current character origin (top left)
-        cur_origin.x += (LECO_CHARS[jj]->char_width + CHARACTER_DEFINITION_KERNING) * font_size /
-                        CHARACTER_DEFINITION_HEIGHT;
-        break;
-      }
-    }
+  for (uint8_t ii = 0; buff[ii] != '\0'; ii++) {
+    prv_draw_character(ctx, &path, buff[ii], font_size);
+    path.offset.x += kerning;
   }
-  // free memory
-  free(path.points);
+}
+
+static int16_t prv_unscaled_text_width(char *buff) {
+  int16_t total_width = 0;
+  for (uint8_t ii = 0; buff[ii] != '\0'; ii++) {
+    uint8_t char_idx = prv_get_character_index(buff[ii]);
+    total_width += LECO_WIDTHS[char_idx] + LECO_KERNING; // Always add kerning for legacy reasons
+  }
+  return total_width;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -129,65 +131,48 @@ static void prv_draw_text(GContext *ctx, char *buff, uint16_t font_size, GPoint 
 //
 
 // Gets the bounds of a certain text string at a certain font size
-GRect text_render_get_content_bounds(char *buff, uint16_t font_size) {
-  // get the unscaled size of the rendered string
-  int16_t total_width = 0;
-  for (uint8_t ii = 0; ii < STRING_MAX_LENGTH && buff[ii] != '\0'; ii++) {
-    // find that character in the array of data
-    for (uint8_t jj = 0; jj < ARRAY_LENGTH(LECO_CHARS); jj++) {
-      if (LECO_CHARS[jj]->character == buff[ii]) {
-        // add the width of that character to the total width
-        total_width += LECO_CHARS[jj]->char_width + CHARACTER_DEFINITION_KERNING;
-        break;
-      }
-    }
+GRect text_render_get_content_bounds(char *buff, int16_t font_size) {
+  if (buff == NULL || buff[0] == '\0' || font_size == 0) {
+    return GRectZero;
   }
-
-  // return the size
-  return GRect(0, 0, total_width * font_size / CHARACTER_DEFINITION_HEIGHT, font_size);
+  int16_t total_width = prv_unscaled_text_width(buff);
+  return GRect(0, 0, total_width * font_size / LECO_HEIGHT, font_size);
 }
 
 // Gets the maximum font size of a certain text string within a certain bounds
-uint16_t text_render_get_max_font_size(char *buff, GRect bounds) {
-  // get the unscaled size of the rendered string
-  GRect unscaled_bounds = text_render_get_content_bounds(buff, CHARACTER_DEFINITION_HEIGHT);
-  // prevent divide by zero for empty strings or zero-size bounds
-  if (unscaled_bounds.size.w <= 0 || unscaled_bounds.size.h <= 0 || bounds.size.w <= 0 ||
-      bounds.size.h <= 0) {
+int16_t text_render_get_max_font_size(char *buff, GRect bounds) {
+  if (buff == NULL || buff[0] == '\0' || bounds.size.w <= 0 || bounds.size.h <= 0) {
     return 0;
   }
   // calculate the maximum font size which stays within this rectangle
-  uint16_t font_size_w = CHARACTER_DEFINITION_HEIGHT * bounds.size.w / unscaled_bounds.size.w;
-  uint16_t font_size_h = CHARACTER_DEFINITION_HEIGHT * bounds.size.h / unscaled_bounds.size.h;
+  int16_t total_width = prv_unscaled_text_width(buff);
+  int16_t font_size_w = LECO_HEIGHT * bounds.size.w / total_width;
+  int16_t font_size_h = bounds.size.h;
   return (font_size_h < font_size_w) ? font_size_h : font_size_w;
 }
 
 // Renders the LECO font onto a drawing context at a certain font size
-void text_render_draw_text(GContext *ctx, char *buff, uint16_t font_size, GPoint position) {
-  // draw the text at a certain font size
+void text_render_draw_text(GContext *ctx, char *buff, int16_t font_size, GPoint position) {
+  if (buff == NULL || buff[0] == '\0' || font_size == 0) {
+    return;
+  }
   prv_draw_text(ctx, buff, font_size, position);
 }
 
 // Renders the LECO font at the largest possible size that will fit within a certain size rectangle
 void text_render_draw_scalable_text(GContext *ctx, char *buff, GRect bounds) {
-  // early return for empty strings or zero/negative-size bounds to prevent divide by zero
-  if (buff[0] == '\0' || bounds.size.w <= 0 || bounds.size.h <= 0) {
+  if (buff == NULL || buff[0] == '\0' || bounds.size.w <= 0 || bounds.size.h <= 0) {
     return;
   }
-  // get the unscaled size of the rendered string
-  GRect unscaled_bounds = text_render_get_content_bounds(buff, CHARACTER_DEFINITION_HEIGHT);
   // calculate the maximum font size which stays within this rectangle
-  uint16_t font_size_w = CHARACTER_DEFINITION_HEIGHT * bounds.size.w / unscaled_bounds.size.w;
-  uint16_t font_size_h = CHARACTER_DEFINITION_HEIGHT * bounds.size.h / unscaled_bounds.size.h;
-  uint16_t font_size = (font_size_h < font_size_w) ? font_size_h : font_size_w;
+  int16_t total_width = prv_unscaled_text_width(buff);
+  int16_t font_size_w = LECO_HEIGHT * bounds.size.w / total_width;
+  int16_t font_size_h = bounds.size.h;
+  int16_t font_size = (font_size_h < font_size_w) ? font_size_h : font_size_w;
   // center the text
   GPoint position;
-  position.x =
-      bounds.origin.x +
-      (bounds.size.w - unscaled_bounds.size.w * font_size / CHARACTER_DEFINITION_HEIGHT) / 2;
-  position.y =
-      bounds.origin.y +
-      (bounds.size.h - unscaled_bounds.size.h * font_size / CHARACTER_DEFINITION_HEIGHT) / 2;
+  position.x = bounds.origin.x + (bounds.size.w - total_width * font_size / LECO_HEIGHT) / 2;
+  position.y = bounds.origin.y + bounds.size.h / 2;
   // draw the text onto the graphics context
   prv_draw_text(ctx, buff, font_size, position);
 }
