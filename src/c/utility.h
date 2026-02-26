@@ -11,6 +11,7 @@
 
 #pragma once
 #include <pebble.h>
+#include <pebble-packet/pebble-packet.h>
 
 //! Time span conversions
 #define MSEC_IN_HR 3600000
@@ -58,3 +59,7 @@ void *malloc_check(uint16_t size, const char *file, int line);
 //! Get current epoch in milliseconds
 //! @return The current epoch time in milliseconds
 uint64_t epoch(void);
+
+//! Update the timeline pin with a wakeup time
+//! @param wakeup_time The time to set the timeline pin to in seconds since epoch, or 0 to remove the timeline pin
+void update_timeline_pin(time_t wakeup_time);

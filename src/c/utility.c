@@ -91,3 +91,19 @@ void *malloc_check(uint16_t size, const char *file, int line) {
 
 // Get current epoch in milliseconds
 uint64_t epoch(void) { return (uint64_t)time(NULL) * 1000 + (uint64_t)time_ms(NULL, NULL); }
+
+// Update the timeline pin with a wakeup time
+void update_timeline_pin(time_t wakeup_time) {
+  if (packet_begin()) {
+    if (packet_put_string(MESSAGE_KEY_type, "update_timeline_pin") &&
+        packet_put_integer(MESSAGE_KEY_update_timeline_pin_time, wakeup_time)) {
+      if (!packet_send(NULL)) {
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to send timeline pin update message");
+      }
+    } else {
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to write timeline pin update message");
+    }
+  } else {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to begin timeline pin update message");
+  }
+}

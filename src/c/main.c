@@ -237,6 +237,11 @@ static void prv_tick_timer_service_callback(struct tm *tick_time, TimeUnits unit
 static void prv_initialize(void) {
   // cancel any existing wakeup events
   wakeup_cancel_all();
+
+  // initialize app messages
+  packet_init();
+  app_message_open(0, 64);
+
   // load timer
   timer_persist_read();
   // set initial states
@@ -282,10 +287,21 @@ static void prv_initialize(void) {
 static void prv_terminate(void) {
   // unsubscribe from timer service
   tick_timer_service_unsubscribe();
-  // schedule wakeup
   if (!timer_is_chrono() && !timer_is_paused()) {
+    // schedule wakeup
     time_t wakeup_time = (epoch() + timer_get_value_ms()) / MSEC_IN_SEC;
     wakeup_schedule(wakeup_time, 0, true);
+
+    if ((timer_get_value_ms() / MSEC_IN_MIN) > 30) {
+      // update timeline pin
+      update_timeline_pin(wakeup_time);
+    } else {
+      // remove timeline pin
+      update_timeline_pin(0);
+    }
+  } else {
+    // remove timeline pin
+    update_timeline_pin(0);
   }
   // destroy
   timer_persist_store();

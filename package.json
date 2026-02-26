@@ -7,13 +7,21 @@
   ],
   "private": true,
   "dependencies": {
-    "pebble-scalable": "^2.2.0"
+    "pebble-packet": "^1.6.0",
+    "pebble-scalable": "^2.2.0",
+    "pebble-timeline-js": "^2.2.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1"
+  },
+  "scripts": {
+    "prettier": "npx prettier src/pkjs --write"
   },
   "pebble": {
     "displayName": "Timer+",
     "uuid": "17bf83aa-88a9-459a-a6e5-60aa60e1dc07",
     "sdkVersion": "3",
-    "enableMultiJS": false,
+    "enableMultiJS": true,
     "targetPlatforms": [
       "aplite",
       "basalt",
@@ -42,6 +50,10 @@
           "characterRegex": "[0-9: ]"
         }
       ]
-    }
+    },
+    "messageKeys": [
+      "type",
+      "update_timeline_pin_time"
+    ]
   }
 }
