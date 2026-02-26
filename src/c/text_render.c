@@ -24,7 +24,7 @@ static const int8_t LECO_KERNING = 4;     //< Spacing between characters
 // unscaled centered point data for all LECO font characters
 static const int8_t LECO_POINTS_X[] = {
     -7, +7, +7, -7, -7, -3, -3, +3, +3, -3,                 // 0
-    -6, +2, +2, +6, +6, -6, -6, -2, -2, -6,                 // 1
+    -7, +2, +2, +7, +7, -7, -7, -2, -2, -7,                 // 1
     -7, +7, +7, -3, -3, +7, +7, -7, -7, +3, +3, -3, -3, -7, // 2
     -7, +7, +7, -7, -7, +3, +3, -5, -5, +3, +3, -7,         // 3
     -7, -3, -3, +3, +3, +7, +7, +3, +3, -7,                 // 4
