@@ -29,10 +29,9 @@
     "resources": {
       "media": [
         {
-          "file": "images/timer_icon.png",
+          "file": "images/icon.png",
           "type": "bitmap",
           "name": "IMAGE_ICON",
-          "memoryFormat": "1Bit",
           "menuIcon": true
         },
         {
