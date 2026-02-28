@@ -29,11 +29,27 @@
     "resources": {
       "media": [
         {
-          "file": "images/timer_icon.png",
+          "file": "images/icon_bw.png",
           "type": "bitmap",
-          "name": "IMAGE_ICON",
+          "name": "MENU_ICON",
           "memoryFormat": "1Bit",
-          "menuIcon": true
+          "menuIcon": true,
+          "targetPlatforms": [
+            "aplite",
+            "diorite",
+            "flint"
+          ]
+        },
+        {
+          "file": "images/icon_color.png",
+          "type": "bitmap",
+          "name": "MENU_ICON",
+          "targetPlatforms": [
+            "basalt",
+            "chalk",
+            "emery",
+            "gabbro"
+          ]
         },
         {
           "type": "font",
