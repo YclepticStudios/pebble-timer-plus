@@ -79,7 +79,7 @@ bool timer_is_paused(void) { return timer_data.start_ms <= 0; }
 
 // Check if the timer is elapsed and vibrate if this is the first call after elapsing
 void timer_check_elapsed(void) {
-  if (timer_is_chrono() && !timer_is_paused() && timer_data.can_vibrate) {
+  if (timer_is_vibrating()) {
     // stop vibration after certain duration
     if (timer_get_value_ms() > VIBRATION_LENGTH_MS) {
       timer_data.can_vibrate = false;
