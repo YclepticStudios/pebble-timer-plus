@@ -15,6 +15,7 @@
 
 // Main constants
 #define BUTTON_HOLD_REPEAT_MS 100
+#define SYSTEM_ENTRANCE_ANIMATION_MS 400
 
 // Main data structure
 static struct {
@@ -275,7 +276,16 @@ static void prv_initialize(void) {
   // subscribe to tick timer service
   tick_timer_service_subscribe(MINUTE_UNIT, prv_tick_timer_service_callback);
   // start refreshing
-  prv_app_timer_callback(NULL);
+  AppLaunchReason reason = launch_reason();
+  if (reason == APP_LAUNCH_QUICK_LAUNCH || reason == APP_LAUNCH_WAKEUP) {
+    // launch timer immediately for wakeups and quick launches
+    prv_app_timer_callback(NULL);
+  } else {
+    // the system opening animation freezes the app on the first frame, wait until that is done
+    // before animating elements in (ideally there would be a better way to detect/get when the
+    // system animation finished)
+    app_timer_register(SYSTEM_ENTRANCE_ANIMATION_MS, prv_app_timer_callback, NULL);
+  }
 }
 
 // Terminate the program
