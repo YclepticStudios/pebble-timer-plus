@@ -60,7 +60,7 @@ static void prv_layer_update_proc_handler(Layer *layer, GContext *ctx) {
 // Back click handler
 static void prv_back_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   // cancel vibrations
-  vibes_cancel();
+  main_timer_rewind();
   // get time parts
   uint16_t hr, min, sec;
   timer_get_time_parts(&hr, &min, &sec);
