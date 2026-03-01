@@ -7,7 +7,7 @@ from 0:00 will cause Timer+ to go into stopwatch mode.
 
 |                             Aplite                              |                      Basalt                       |                      Chalk                      |                             Diorite                              |                      Emery                      |                             Flint                              |                      Gabbro                       |
 | :-------------------------------------------------------------: | :-----------------------------------------------: | :---------------------------------------------: | :--------------------------------------------------------------: | :---------------------------------------------: | :------------------------------------------------------------: | :-----------------------------------------------: |
-| ![Aplite](assets/screenshots/aplite-diorite-flint-animated.gif) | ![Basalt](assets/screenshots/basalt-animated.gif) | ![Chalk](assets/screenshots/chalk-animated.gif) | ![Diorite](assets/screenshots/aplite-diorite-flint-animated.gif) | ![Emery](assets/screenshots/emery-animated.gif) | ![Flint](assets/screenshots/aplite-diorite-flint-animated.gif) | ![Gabbro](assets/screenshots/gabbro-animated.gif) |
+| ![Aplite](assets/screenshots/aplite_diorite_flint_animated.gif) | ![Basalt](assets/screenshots/basalt_animated.gif) | ![Chalk](assets/screenshots/chalk_animated.gif) | ![Diorite](assets/screenshots/aplite_diorite_flint_animated.gif) | ![Emery](assets/screenshots/emery_animated.gif) | ![Flint](assets/screenshots/aplite_diorite_flint_animated.gif) | ![Gabbro](assets/screenshots/gabbro_animated.gif) |
 
 ## Building
 
