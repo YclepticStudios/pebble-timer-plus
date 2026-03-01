@@ -5,9 +5,9 @@ the WakeUp api, so there is no need to keep the app open. Once the timer has gon
 it is running, long pressing the select button will reset the timer. Additionally, starting a timer
 from 0:00 will cause Timer+ to go into stopwatch mode.
 
-![Timer+ Pebble](assets/screenshots/aplite-diorite-flint-animated.gif)
-![Timer+ Pebble](assets/screenshots/basalt-animated.gif)
-![Timer+ Pebble](assets/screenshots/chalk-animated.gif)
+|                             Aplite                              |                      Basalt                       |                      Chalk                      |                             Diorite                              |                      Emery                      |                             Flint                              |                      Gabbro                       |
+| :-------------------------------------------------------------: | :-----------------------------------------------: | :---------------------------------------------: | :--------------------------------------------------------------: | :---------------------------------------------: | :------------------------------------------------------------: | :-----------------------------------------------: |
+| ![Aplite](assets/screenshots/aplite-diorite-flint-animated.gif) | ![Basalt](assets/screenshots/basalt-animated.gif) | ![Chalk](assets/screenshots/chalk-animated.gif) | ![Diorite](assets/screenshots/aplite-diorite-flint-animated.gif) | ![Emery](assets/screenshots/emery-animated.gif) | ![Flint](assets/screenshots/aplite-diorite-flint-animated.gif) | ![Gabbro](assets/screenshots/gabbro-animated.gif) |
 
 ## Building
 
