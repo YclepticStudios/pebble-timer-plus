@@ -16,17 +16,21 @@
 // Main constants
 #define BUTTON_HOLD_REPEAT_MS 100
 #define SYSTEM_ENTRANCE_ANIMATION_MS 400
+#define REMINDER_NUDGE_TIMING_MS 60000
 
 // Main data structure
 static struct {
-  Window *window;           //< The base window for the application
-  Layer *layer;             //< The base layer on which everything will be drawn
-  ControlMode control_mode; //< The current control mode of the timer
-  AppTimer *app_timer;      //< The AppTimer to keep the screen refreshing
+  Window *window;                 //< The base window for the application
+  Layer *layer;                   //< The base layer on which everything will be drawn
+  ControlMode control_mode;       //< The current control mode of the timer
+  AppTimer *app_timer;            //< The AppTimer to keep the screen refreshing
+  AppTimer *reminder_nudge_timer; //< The AppTimer to nudge the user after they've been idle in edit mode
 } main_data;
 
 // Function declarations
 static void prv_app_timer_callback(void *data);
+static void prv_reminder_nudge_timer_callback(void *data);
+static void prv_reset_reminder_nudge_timer(void);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Private Functions
@@ -73,6 +77,7 @@ static void prv_back_click_handler(ClickRecognizerRef recognizer, void *ctx) {
     window_stack_pop(true);
   }
   // refresh
+  prv_reset_reminder_nudge_timer();
   drawing_update();
   layer_mark_dirty(main_data.layer);
 }
@@ -112,6 +117,7 @@ static void prv_up_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   if (!click_recognizer_is_repeating(recognizer)) {
     drawing_start_bounce_animation(true);
   }
+  prv_reset_reminder_nudge_timer();
   drawing_update();
   layer_mark_dirty(main_data.layer);
 }
@@ -143,6 +149,7 @@ static void prv_select_click_handler(ClickRecognizerRef recognizer, void *ctx) {
     break;
   }
   // refresh
+  prv_reset_reminder_nudge_timer();
   drawing_update();
   layer_mark_dirty(main_data.layer);
 }
@@ -161,6 +168,7 @@ static void prv_select_long_click_handler(ClickRecognizerRef recognizer, void *c
   main_data.control_mode = ControlModeEditMin;
   timer_reset();
   // animate and refresh
+  prv_reset_reminder_nudge_timer();
   drawing_update();
   layer_mark_dirty(main_data.layer);
 }
@@ -189,6 +197,7 @@ static void prv_down_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   if (!click_recognizer_is_repeating(recognizer)) {
     drawing_start_bounce_animation(false);
   }
+  prv_reset_reminder_nudge_timer();
   drawing_update();
   layer_mark_dirty(main_data.layer);
 }
@@ -223,6 +232,27 @@ static void prv_app_timer_callback(void *data) {
     main_data.app_timer = app_timer_register(duration + 5, prv_app_timer_callback, NULL);
   }
 }
+
+// Reminder nudge AppTimer callback; fires once
+static void prv_reminder_nudge_timer_callback(void *data) {
+  main_data.reminder_nudge_timer = NULL;
+  if (main_data.control_mode != ControlModeCounting) {
+    vibes_double_pulse();
+  }
+}
+
+// Cancel any pending nudge timer and restart it if in edit mode
+static void prv_reset_reminder_nudge_timer(void) {
+  if (main_data.reminder_nudge_timer) {
+    app_timer_cancel(main_data.reminder_nudge_timer);
+    main_data.reminder_nudge_timer = NULL;
+  }
+  if (main_data.control_mode != ControlModeCounting) {
+    main_data.reminder_nudge_timer = app_timer_register(
+      REMINDER_NUDGE_TIMING_MS, prv_reminder_nudge_timer_callback, NULL);
+  }
+}
+
 
 // TickTimerService callback
 static void prv_tick_timer_service_callback(struct tm *tick_time, TimeUnits units_changed) {
@@ -286,6 +316,7 @@ static void prv_initialize(void) {
     // system animation finished)
     app_timer_register(SYSTEM_ENTRANCE_ANIMATION_MS, prv_app_timer_callback, NULL);
   }
+  prv_reset_reminder_nudge_timer();
 }
 
 // Terminate the program
