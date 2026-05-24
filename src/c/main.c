@@ -11,6 +11,7 @@
 #include "drawing.h"
 #include "timer.h"
 #include "utility.h"
+#include "rotary_kit.h"
 #include <pebble.h>
 
 // Main constants
@@ -224,6 +225,91 @@ static void prv_app_timer_callback(void *data) {
   }
 }
 
+static void on_click(int direction, int click_num, void *context) {
+  // rewind timer if it's currently going off
+  if (main_timer_rewind() || main_data.control_mode == ControlModeCounting) {
+    return;
+  }
+  // CW (+1) = increment (like UP), CCW (-1) = decrement (like DOWN)
+  int64_t increment;
+  if (main_data.control_mode == ControlModeEditHr) {
+    increment = (int64_t)direction * MSEC_IN_HR;
+  } else if (main_data.control_mode == ControlModeEditMin) {
+    increment = (int64_t)direction * MSEC_IN_MIN;
+  } else {
+    increment = (int64_t)direction * MSEC_IN_SEC;
+  }
+  // capture pre-increment components to detect minute→hour rollover
+  uint16_t o_hr, o_min, o_sec;
+  timer_get_time_parts(&o_hr, &o_min, &o_sec);
+  timer_increment(increment);
+  // if incrementing, check for minute rollover into hours
+  if (direction > 0) {
+    uint16_t n_hr, n_min, n_sec;
+    timer_get_time_parts(&n_hr, &n_min, &n_sec);
+    if (o_min > n_min && !o_hr) {
+      timer_increment(MSEC_IN_HR);
+      main_data.control_mode = ControlModeEditHr;
+    }
+  }
+  // drop out of EditHr if hours are now zero
+  if (timer_get_value_ms() / MSEC_IN_HR == 0 && main_data.control_mode == ControlModeEditHr) {
+    main_data.control_mode = ControlModeEditMin;
+  }
+  // only trigger the bounce animation on the first detent of a gesture
+  if (click_num == 1) {
+    drawing_start_bounce_animation(direction > 0);
+  }
+  drawing_update();
+  layer_mark_dirty(main_data.layer);
+}
+
+static void on_swipe(RotarySwipeDirection direction, void *context) {
+  if (direction != RotarySwipeDirection_Left) {
+    return;
+  }
+  // mirrors prv_back_click_handler
+  main_timer_rewind();
+  uint16_t hr, min, sec;
+  timer_get_time_parts(&hr, &min, &sec);
+  if ((hr && main_data.control_mode == ControlModeEditMin) ||
+      main_data.control_mode == ControlModeEditSec) {
+    main_data.control_mode--;
+  } else {
+    window_stack_pop(true);
+  }
+  drawing_update();
+  layer_mark_dirty(main_data.layer);
+}
+
+static void on_center_tap(void *context) {
+  // mirrors prv_select_click_handler
+  if (main_timer_rewind()) {
+    return;
+  }
+  switch (main_data.control_mode) {
+  case ControlModeEditHr:
+    main_data.control_mode = ControlModeEditMin;
+    break;
+  case ControlModeEditMin:
+    main_data.control_mode = ControlModeEditSec;
+    break;
+  case ControlModeEditSec:
+    main_data.control_mode = ControlModeCounting;
+    timer_toggle_play_pause();
+    if (!main_data.app_timer) {
+      prv_app_timer_callback(NULL);
+    }
+    break;
+  case ControlModeCounting:
+    main_data.control_mode = ControlModeEditSec;
+    timer_toggle_play_pause();
+    break;
+  }
+  drawing_update();
+  layer_mark_dirty(main_data.layer);
+}
+
 // TickTimerService callback
 static void prv_tick_timer_service_callback(struct tm *tick_time, TimeUnits units_changed) {
   // refresh
@@ -265,6 +351,16 @@ static void prv_initialize(void) {
   window_bounds.size.h = 168;
 #endif
   window_stack_push(main_data.window, true);
+  // register rotary gestures (no-op on hardware without a touch surface)
+  RotaryConfig rotary_cfg = rotary_kit_default_config();
+  rotary_cfg.center_x    = PBL_DISPLAY_WIDTH  / 2;
+  rotary_cfg.center_y    = PBL_DISPLAY_HEIGHT / 2;
+  rotary_cfg.degrees_per_click = 15;
+  rotary_cfg.click_vibe_ms = 0;
+  rotary_cfg.on_click      = on_click;
+  rotary_cfg.on_center_tap = on_center_tap;
+  rotary_cfg.on_swipe      = on_swipe;
+  rotary_kit_set_window_config(main_data.window, &rotary_cfg);
   // initialize main layer
   main_data.layer = layer_create(window_bounds);
   ASSERT(main_data.layer);
@@ -299,6 +395,7 @@ static void prv_terminate(void) {
   }
   // destroy
   timer_persist_store();
+  rotary_kit_clear_window_config(main_data.window);
   drawing_terminate();
   layer_destroy(main_data.layer);
   window_destroy(main_data.window);
