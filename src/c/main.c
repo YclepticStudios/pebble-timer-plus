@@ -355,7 +355,7 @@ static void prv_initialize(void) {
   RotaryConfig rotary_cfg = rotary_kit_default_config();
   rotary_cfg.center_x    = PBL_DISPLAY_WIDTH  / 2;
   rotary_cfg.center_y    = PBL_DISPLAY_HEIGHT / 2;
-  rotary_cfg.degrees_per_click = 15;
+  rotary_cfg.degrees_per_click = 45;
   rotary_cfg.click_vibe_ms = 0;
   rotary_cfg.on_click      = on_click;
   rotary_cfg.on_center_tap = on_center_tap;
