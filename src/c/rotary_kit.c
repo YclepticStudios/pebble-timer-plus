@@ -20,6 +20,23 @@ static const int8_t s_atan_table[46] = {
 static bool s_active = false;
 
 // ---------------------------------------------------------------------------
+// Rotation acceleration
+//
+// Configurable via RotaryConfig: accel_degrees_per_level, accel_max_level,
+// accel_reset_ms.  Set accel_degrees_per_level = 0 to disable.
+// ---------------------------------------------------------------------------
+
+static int32_t   s_accel_total_hd   = 0;
+static int       s_accel_multiplier = 1;
+static AppTimer *s_accel_timer      = NULL;
+
+static void prv_accel_reset(void *data) {
+    s_accel_timer      = NULL;
+    s_accel_total_hd   = 0;
+    s_accel_multiplier = 1;
+}
+
+// ---------------------------------------------------------------------------
 // Per-window config table
 //
 // Stores a (Window *, RotaryConfig) pair for each registered window.
@@ -186,6 +203,13 @@ static void prv_fire_click(int direction) {
     if (s_cfg.on_click) {
         s_cfg.on_click(direction, s_click_count, s_cfg.context);
     }
+    if (s_cfg.accel_reset_ms > 0) {
+        if (s_accel_timer) {
+            app_timer_reschedule(s_accel_timer, s_cfg.accel_reset_ms);
+        } else {
+            s_accel_timer = app_timer_register(s_cfg.accel_reset_ms, prv_accel_reset, NULL);
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -193,7 +217,6 @@ static void prv_fire_click(int direction) {
 // ---------------------------------------------------------------------------
 
 static void prv_touch_handler(const TouchEvent *event, void *context) {
-    int16_t threshold_hd = s_cfg.degrees_per_click * 2;
 
     switch (event->type) {
 
@@ -260,6 +283,19 @@ static void prv_touch_handler(const TouchEvent *event, void *context) {
                 s_accumulated_hd += delta;
                 s_total_hd       += delta < 0 ? -delta : delta;
                 s_last_angle_hd   = cur_hd;
+
+                // Update the acceleration multiplier if enabled.
+                if (s_cfg.accel_degrees_per_level > 0) {
+                    int16_t abs_delta = delta < 0 ? -delta : delta;
+                    s_accel_total_hd += abs_delta;
+                    int level = (int)(s_accel_total_hd / (s_cfg.accel_degrees_per_level * 2));
+                    if (level > s_cfg.accel_max_level) level = s_cfg.accel_max_level;
+                    s_accel_multiplier = 1 << level;
+                }
+
+                // Threshold shrinks as multiplier grows → more clicks per arc.
+                int16_t threshold_hd = (s_cfg.degrees_per_click * 2) / s_accel_multiplier;
+                if (threshold_hd < 1) threshold_hd = 1;
 
                 while (s_accumulated_hd >= threshold_hd) {
                     prv_fire_click(+1);
@@ -331,6 +367,9 @@ RotaryConfig rotary_kit_default_config(void) {
         .degrees_per_click = 30,
         .click_vibe_ms     = 20,   // subtle — won't fatigue during fast scrolling
         .swipe_vibe_ms     = 40,   // slightly longer — marks a committed gesture
+        .accel_degrees_per_level = 180,
+        .accel_max_level         = 3,
+        .accel_reset_ms          = 500,
         .on_click          = NULL,
         .on_liftoff        = NULL,
         .on_center_tap     = NULL,
@@ -395,6 +434,12 @@ void rotary_kit_clear_window_config(Window *window) {
         s_center_tap_pending = false;
         s_start_region       = REGION_NONE;
         s_last_region        = REGION_NONE;
+        if (s_accel_timer) {
+            app_timer_cancel(s_accel_timer);
+            s_accel_timer      = NULL;
+        }
+        s_accel_total_hd   = 0;
+        s_accel_multiplier = 1;
         APP_LOG(APP_LOG_LEVEL_INFO, "RotaryKit: touch service unsubscribed");
     }
 }
