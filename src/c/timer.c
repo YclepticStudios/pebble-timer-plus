@@ -11,12 +11,10 @@
 #include "timer.h"
 #include "utility.h"
 
-#define PERSIST_VERSION 2
+#define PERSIST_VERSION 3
 #define PERSIST_VERSION_KEY 4342896
 #define PERSIST_TIMER_KEY 58734
 #define VIBRATION_LENGTH_MS 20000
-// legacy persistent storage
-#define PERSIST_TIMER_KEY_V2 3456
 
 // Vibration sequence
 static const uint32_t vibe_sequence[] = {150, 200, 300};
@@ -29,7 +27,6 @@ static const VibePattern vibe_pattern = {
 typedef struct {
   int64_t length_ms; //< Length of timer in milliseconds
   int64_t start_ms;  //< The start epoch of the timer in milliseconds
-  bool elapsed;      //< Used to start the vibration if first time as elapsed
   bool can_vibrate;  //< Flag used to tell when the timer has completed
 } Timer;
 Timer timer_data;
@@ -162,14 +159,6 @@ void timer_persist_store(void) {
 
 // Read the timer from persistent storage
 void timer_persist_read(void) {
-  // read legacy version
-  if (persist_exists(PERSIST_TIMER_KEY_V2)) {
-    persist_delete(PERSIST_TIMER_KEY_V2);
-    if (launch_reason() == APP_LAUNCH_WAKEUP) {
-      timer_increment(5000);
-      timer_toggle_play_pause();
-    }
-  }
   // read current version, but only a blob this build knows the layout of
   if (persist_read_int(PERSIST_VERSION_KEY) == PERSIST_VERSION &&
       persist_exists(PERSIST_TIMER_KEY)) {
