@@ -90,4 +90,10 @@ void *malloc_check(uint16_t size, const char *file, int line) {
 }
 
 // Get current epoch in milliseconds
-uint64_t epoch(void) { return (uint64_t)time(NULL) * 1000 + (uint64_t)time_ms(NULL, NULL); }
+// Both halves come from one reading. Taking the seconds and the milliseconds separately can
+// straddle a second boundary and return a time a whole second in the past.
+uint64_t epoch(void) {
+  time_t sec;
+  const uint16_t ms = time_ms(&sec, NULL);
+  return (uint64_t)sec * 1000 + ms;
+}
