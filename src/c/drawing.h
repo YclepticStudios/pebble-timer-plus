@@ -14,8 +14,11 @@
 //! @param upward Animate the bounce upward or downward
 void drawing_start_bounce_animation(bool upward);
 
-//! Create reset animation for focus layer
+//! Shrink the focus layer while select is held, hinting at the reset the hold will perform
 void drawing_start_reset_animation(void);
+
+//! Return the focus layer to full size, once the hold has ended or performed its reset
+void drawing_stop_reset_animation(void);
 
 //! Render everything to the screen
 //! @param layer The layer being rendered onto

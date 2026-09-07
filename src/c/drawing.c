@@ -80,6 +80,7 @@ static struct {
   DrawState draw_state;                //< An arbitrary description of the main drawing state
   GRect text_fields[TEXT_FIELD_COUNT]; //< The number of text fields (hr : min : sec)
   GRect focus_field;                   //< The selection field layer
+  int32_t focus_inset;                 //< Shrinks the selection field while select is held
   GColor fore_color;                   //< Color of text
   GColor mid_color;                    //< Color of center
   GColor ring_color;                   //< Color of ring
@@ -123,12 +124,16 @@ static void prv_focus_layer_update_state(Layer *layer, GRect hr_bounds, GRect mi
 }
 
 // Draw the focus layer
+// The shrink which hints that select is held is an inset applied here, not a change of the
+// field itself, so holding the button can never move the field or fight an animation on it
 static void prv_render_focus_layer(GContext *ctx) {
+  const GRect bounds =
+      grect_inset(drawing_data.focus_field, GEdgeInsets1((int16_t)drawing_data.focus_inset));
 #ifdef PBL_BW
-  graphics_fill_rect_grey(ctx, drawing_data.focus_field);
+  graphics_fill_rect_grey(ctx, bounds);
 #else
   graphics_context_set_fill_color(ctx, drawing_data.ring_color);
-  graphics_fill_rect(ctx, drawing_data.focus_field, 0, GCornerNone);
+  graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 #endif
 }
 
@@ -386,17 +391,17 @@ void drawing_start_bounce_animation(bool upward) {
                         FOCUS_BOUNCE_ANI_DURATION * 2, CurveSinEaseOut);
 }
 
-// Create reset animation for focus layer
+// Shrink the focus layer while select is held, hinting at the reset the hold will perform
 void drawing_start_reset_animation(void) {
-  // create shrunken focus bounds and animate to new bounds
-  GRect focus_to_bounds;
-  focus_to_bounds = grect_inset(drawing_data.focus_field, GEdgeInsets1(FOCUS_FIELD_SHRINK_INSET));
-  // shrinking animation
-  animation_grect_start(&drawing_data.focus_field, focus_to_bounds, FOCUS_FIELD_SHRINK_DURATION, 0,
-                        CurveLinear);
-  // return animation back to original size
-  animation_grect_start(&drawing_data.focus_field, drawing_data.focus_field,
-                        FOCUS_FIELD_SHRINK_DURATION, BUTTON_HOLD_RESET_MS, CurveLinear);
+  animation_stop(&drawing_data.focus_inset);
+  animation_int32_start(&drawing_data.focus_inset, FOCUS_FIELD_SHRINK_INSET,
+                        FOCUS_FIELD_SHRINK_DURATION, 0, CurveLinear);
+}
+
+// Return the focus layer to full size, once the hold has ended or performed its reset
+void drawing_stop_reset_animation(void) {
+  animation_stop(&drawing_data.focus_inset);
+  animation_int32_start(&drawing_data.focus_inset, 0, FOCUS_FIELD_SHRINK_DURATION, 0, CurveLinear);
 }
 
 // Render everything to the screen
@@ -447,6 +452,7 @@ void drawing_initialize(Layer *layer) {
     drawing_data.text_fields[ii].origin = grect_center_point(&bounds);
     drawing_data.text_fields[ii].size = GSizeZero;
   }
+  drawing_data.focus_inset = 0;
   drawing_data.focus_field.origin = grect_center_point(&bounds);
   if (main_get_control_mode() == ControlModeCounting) {
     drawing_data.focus_field.origin.x = bounds.size.w;

@@ -156,10 +156,19 @@ static void prv_select_raw_click_handler(ClickRecognizerRef recognizer, void *ct
   layer_mark_dirty(main_data.layer);
 }
 
+// Select raw release handler
+static void prv_select_raw_release_handler(ClickRecognizerRef recognizer, void *ctx) {
+  // the shrink hints that the button is held, so it ends when the press does
+  drawing_stop_reset_animation();
+  layer_mark_dirty(main_data.layer);
+}
+
 // Select long click handler
 static void prv_select_long_click_handler(ClickRecognizerRef recognizer, void *ctx) {
   main_data.control_mode = ControlModeEditMin;
   timer_reset();
+  // the hold has done what it was hinting at, so the focus layer returns to full size now
+  drawing_stop_reset_animation();
   // animate and refresh
   drawing_update();
   layer_mark_dirty(main_data.layer);
@@ -199,7 +208,8 @@ static void prv_click_config_provider(void *ctx) {
   window_single_repeating_click_subscribe(BUTTON_ID_UP, BUTTON_HOLD_REPEAT_MS,
                                           prv_up_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click_handler);
-  window_raw_click_subscribe(BUTTON_ID_SELECT, prv_select_raw_click_handler, NULL, NULL);
+  window_raw_click_subscribe(BUTTON_ID_SELECT, prv_select_raw_click_handler,
+                             prv_select_raw_release_handler, NULL);
   window_long_click_subscribe(BUTTON_ID_SELECT, BUTTON_HOLD_RESET_MS, prv_select_long_click_handler,
                               NULL);
   window_single_repeating_click_subscribe(BUTTON_ID_DOWN, BUTTON_HOLD_REPEAT_MS,
