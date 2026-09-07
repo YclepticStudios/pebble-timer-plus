@@ -16,6 +16,13 @@
 // Main constants
 #define BUTTON_HOLD_REPEAT_MS 100
 #define SYSTEM_ENTRANCE_ANIMATION_MS 400
+// Wakeup scheduling
+// A wakeup is refused within a minute either side of another app's, so stepping clear of one
+// blocked slot can take two steps of a minute. Nothing can be scheduled within thirty seconds of
+// now either, and the lead below leaves a little margin on top of that for teardown to finish.
+#define WAKEUP_STEP_S 60
+#define WAKEUP_STEPS 2
+#define WAKEUP_MIN_LEAD_S 35
 
 // Main data structure
 static struct {
@@ -288,14 +295,36 @@ static void prv_initialize(void) {
   }
 }
 
+// Schedule the wakeup which reopens the app when the timer elapses
+// wakeup_schedule refuses a slot within a minute either side of another app's wakeup, and reports
+// that in its return value rather than by failing loudly, so an unchecked call can leave a timer
+// with no wakeup at all. Step away from a blocked slot and ask again.
+// Earlier is tried before later: waking early means the app is already running when the timer
+// elapses, so the alert is still on time, where a later wakeup delays the alert itself. Nothing
+// can be scheduled within thirty seconds of now, which sets how early it is worth asking.
+static void prv_schedule_wakeup(time_t elapse_time) {
+  const time_t earliest = (time_t)(epoch() / MSEC_IN_SEC) + WAKEUP_MIN_LEAD_S;
+  for (uint8_t step = 0; step <= WAKEUP_STEPS; step++) {
+    const time_t at = elapse_time - step * WAKEUP_STEP_S;
+    if (at >= earliest && wakeup_schedule(at, 0, true) >= 0) {
+      return;
+    }
+  }
+  // every earlier slot is taken or too soon, so a late alert is all that is left
+  for (uint8_t step = 1; step <= WAKEUP_STEPS; step++) {
+    if (wakeup_schedule(elapse_time + step * WAKEUP_STEP_S, 0, true) >= 0) {
+      return;
+    }
+  }
+}
+
 // Terminate the program
 static void prv_terminate(void) {
   // unsubscribe from timer service
   tick_timer_service_unsubscribe();
   // schedule wakeup
   if (!timer_is_chrono() && !timer_is_paused()) {
-    time_t wakeup_time = (epoch() + timer_get_value_ms()) / MSEC_IN_SEC;
-    wakeup_schedule(wakeup_time, 0, true);
+    prv_schedule_wakeup((epoch() + timer_get_value_ms()) / MSEC_IN_SEC);
   }
   // destroy
   timer_persist_store();
