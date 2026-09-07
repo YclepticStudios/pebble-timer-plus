@@ -155,7 +155,7 @@ void timer_reset(void) {
 
 // Save the timer to persistent storage
 void timer_persist_store(void) {
-  // write out current persistent data version for potential future reference
+  // the version says which structure layout the blob below holds, and timer_persist_read checks it
   persist_write_int(PERSIST_VERSION_KEY, PERSIST_VERSION);
   persist_write_data(PERSIST_TIMER_KEY, &timer_data, sizeof(timer_data));
 }
@@ -170,8 +170,9 @@ void timer_persist_read(void) {
       timer_toggle_play_pause();
     }
   }
-  // read current version
-  if (persist_exists(PERSIST_TIMER_KEY)) {
+  // read current version, but only a blob this build knows the layout of
+  if (persist_read_int(PERSIST_VERSION_KEY) == PERSIST_VERSION &&
+      persist_exists(PERSIST_TIMER_KEY)) {
     persist_read_data(PERSIST_TIMER_KEY, &timer_data, sizeof(timer_data));
   } else {
     timer_reset();
